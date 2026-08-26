@@ -690,11 +690,7 @@ async function loadEvents(){
   if (error){ el.innerHTML = '<p class="state-msg">お話会の情報を読み込めませんでした。</p>'; return; }
   if (!data || data.length === 0){ el.innerHTML = '<p class="state-msg">まだお話会の予定はありません。</p>'; return; }
 
-  const today = new Date(); today.setHours(0,0,0,0);
-  const withDone = data.map(ev => ({
-    ...ev,
-    isDone: ev.status === 'done' || (ev.event_date && new Date(ev.event_date) < today)
-  }));
+  const withDone = data.map(ev => ({ ...ev, isDone: ev.status === 'done' }));
   const sorted = [...withDone.filter(ev => !ev.isDone), ...withDone.filter(ev => ev.isDone)];
 
   el.innerHTML = sorted.map(ev => `
