@@ -33,10 +33,10 @@
   }
 
   *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
+  html{ scroll-behavior:smooth; scroll-padding-top:3.1rem; }
   body{
     margin:0;
-    padding-top:4.6rem;
+    padding-top:3.1rem;
     background:var(--kinari);
     color:var(--sumi);
     font-family:var(--font-body);
@@ -421,35 +421,68 @@
 
   :focus-visible{ outline:2px solid var(--shu); outline-offset:2px; }
 
-  /* ============ Site header (fixed) ============ */
+  /* ============ Site header (fixed index nav) ============ */
   .site-header{
     position:fixed; top:0; left:0; right:0; z-index:100;
     background:var(--ai-deep);
     border-bottom:1px solid rgba(217,179,108,.3);
-    padding:1rem 0;
   }
-  .site-header .brand{
+  .site-nav{
+    display:flex; align-items:center; gap:1.5rem;
+    overflow-x:auto;
+    padding:.85rem 0;
+    scrollbar-width:none;
+  }
+  .site-nav::-webkit-scrollbar{ display:none; }
+  .site-nav a{
+    font-family:var(--font-label);
+    font-size:.78rem;
+    letter-spacing:.1em;
+    color:#D8D2BF;
+    text-decoration:none;
+    white-space:nowrap;
+    padding:.3em 0;
+    border-bottom:1px solid transparent;
+    transition:color .2s ease, border-color .2s ease;
+  }
+  .site-nav a:hover, .site-nav a:focus-visible{
+    color:#D9B36C; border-color:#D9B36C;
+  }
+  .site-nav a.brand{
     font-family:var(--font-display);
     font-weight:700;
-    font-size:clamp(1.3rem,3.2vw,1.9rem);
+    font-size:.9rem;
     letter-spacing:.03em;
     color:var(--kinari);
-    text-decoration:none;
-    display:inline-block;
+  }
+
+  /* ============ Hero brand (scrolls with page) ============ */
+  .hero-brand{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(2.2rem,6.5vw,3.8rem);
+    letter-spacing:.03em;
+    color:var(--kinari);
+    margin:0 0 .35em;
+    line-height:1.15;
   }
 </style>
 </head>
 <body>
 
 <header class="site-header">
-  <div class="wrap"><a class="brand" href="#top">shinEDO project</a></div>
+  <nav class="site-nav wrap">
+    <a class="brand" href="#top">shinEDO project</a>
+    <a href="#events">お話会</a>
+    <a href="#members">仲間</a>
+    <a href="#apply">参加する</a>
+  </nav>
 </header>
-
 
 <!-- ============ Hero ============ -->
 <section class="hero" id="top">
   <div class="wrap">
-    <p class="eyebrow">shinEDO project</p>
+    <p class="hero-brand">shinEDO project</p>
     <h1>江戸に学び、<br>明日をつくる。</h1>
     <p class="lead">江戸時代の素晴らしさと、現代の素晴らしさ。その融合と調和を、実験し、実践する。</p>
     <div class="scroll-hint"><span class="line"></span>SCROLL</div>
@@ -537,7 +570,7 @@
 <div class="wrap"><div class="divider"></div></div>
 
 <!-- ============ お話会（動的） ============ -->
-<section>
+<section id="events">
   <div class="wrap reveal">
     <p class="eyebrow">お話会</p>
     <h2>実践と報告を、共に。</h2>
@@ -549,7 +582,7 @@
 </section>
 
 <!-- ============ 会員（動的） ============ -->
-<section>
+<section id="members">
   <div class="wrap reveal">
     <p class="eyebrow">参加している仲間</p>
     <h2>いま、集まっている数。</h2>
