@@ -640,6 +640,14 @@
         <input id="f-contact" type="text" required>
       </div>
       <div class="field">
+        <label for="f-address">住所（任意）</label>
+        <input id="f-address" type="text">
+      </div>
+      <div class="field">
+        <label for="f-url">サイト・SNSのURL（任意）</label>
+        <input id="f-url" type="url" placeholder="https://...">
+      </div>
+      <div class="field">
         <label for="f-message">一言（任意）</label>
         <textarea id="f-message"></textarea>
       </div>
@@ -784,6 +792,8 @@ applyForm.addEventListener('submit', async (e) => {
     category: document.getElementById('f-category').value,
     name: document.getElementById('f-name').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
+    address: document.getElementById('f-address').value.trim() || null,
+    url: document.getElementById('f-url').value.trim() || null,
     message: document.getElementById('f-message').value.trim(),
     status: 'pending'
   };
