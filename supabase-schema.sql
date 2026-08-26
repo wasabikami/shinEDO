@@ -14,14 +14,16 @@ create table if not exists members (
   address text,                 -- 所在地（地図・表示用）
   lat double precision,         -- 緯度（地図に表示する場合に設定）
   lng double precision,         -- 経度（地図に表示する場合に設定）
+  url text,                     -- お店・団体のサイトやSNSのURL（地図ポップアップに表示）
   message text,                 -- 一言メッセージ
   status text not null default 'pending'   -- pending（未承認） / approved（公開）
 );
 
--- 既存のテーブルに address / lat / lng がまだ無い場合はこちらを実行
+-- 既存のテーブルに address / lat / lng / url がまだ無い場合はこちらを実行
 -- alter table members add column if not exists address text;
 -- alter table members add column if not exists lat double precision;
 -- alter table members add column if not exists lng double precision;
+-- alter table members add column if not exists url text;
 
 -- お話会テーブル：開催予定・実施履歴を管理する
 create table if not exists events (
@@ -67,16 +69,20 @@ insert into events (event_date, guest_name, theme, status) values
   ('2026-09-21', '空手と歌手', '次回のお話会', 'upcoming'),
   ('2026-12-14', 'だるまさんの草履', '12月のお話会', 'upcoming');
 
-insert into members (category, name, contact, address, lat, lng, status) values
-  ('個人', '超人', null, null, null, null, 'approved'),
+insert into members (category, name, contact, address, lat, lng, url, status) values
+  ('個人', '超人', null, null, null, null, null, 'approved'),
   ('団体・会社・企業', '達磨草履工房', null,
-    '香川県仲多度郡まんのう町勝浦892番地', 34.0880579, 133.9916719, 'approved'),
+    '香川県仲多度郡まんのう町勝浦892番地', 34.0880579, 133.9916719,
+    'https://www.instagram.com/dharmakoubou/?hl=ja', 'approved'),
   ('団体・会社・企業', 'MIROCビール', 'info@miroc-beer.com / 0877-43-7067',
-    '香川県丸亀市北平山町2-5-15', 34.2888128, 133.7982421, 'approved'),
+    '香川県丸亀市北平山町2-5-15', 34.2888128, 133.7982421,
+    'https://www.miroc-beer.com/', 'approved'),
   ('団体・会社・企業', '愛菜ファーム Sin', null,
-    '香川県丸亀市飯山町真時555', 34.2582117, 133.8473823, 'approved'),
+    '香川県丸亀市飯山町真時555', 34.2582117, 133.8473823,
+    'https://www.facebook.com/aisaifarmsin/', 'approved'),
   ('団体・会社・企業', '和咲美', null,
-    '岡山県美作市真加部1057-4', 35.0796259, 134.1870792, 'approved');
+    '岡山県美作市真加部1057-4', 35.0796259, 134.1870792,
+    'https://wasabi-mimasaka.com/', 'approved');
 
 -- ------------------------------------------------------------
 -- 補足：lat/lng は町域レベルの目安座標です（番地までは正確ではありません）。

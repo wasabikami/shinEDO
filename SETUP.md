@@ -42,13 +42,17 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOi...（長い文字列）';
   → `members` テーブルの `address`（所在地）・`lat`（緯度）・`lng`（経度）を入力してください。
   Googleマップで場所を検索 → 右クリック →「緯度、経度」をクリックするとコピーできます。
   `lat`/`lng` が未入力の会員は、地図には表示されず（一覧・人数カウントには表示されます）。
+- **地図のピンにサイトへのリンクを出したいとき**
+  → `members` テーブルの `url` に、お店・団体のサイトやSNSのURL（`https://` から始まるもの）を入力してください。
+  地図上のピンをクリックすると、住所と一緒に「サイトを見る」リンクが表示されます。
 
-  ※ 既にSupabaseプロジェクトを作成済みで `members` テーブルに `address`/`lat`/`lng` 列がない場合は、
+  ※ 既にSupabaseプロジェクトを作成済みで `members` テーブルに `address`/`lat`/`lng`/`url` 列がない場合は、
   SQL Editorで次を実行してください。
   ```sql
   alter table members add column if not exists address text;
   alter table members add column if not exists lat double precision;
   alter table members add column if not exists lng double precision;
+  alter table members add column if not exists url text;
   ```
 
 ## 補足
