@@ -36,6 +36,7 @@
   html{ scroll-behavior:smooth; }
   body{
     margin:0;
+    padding-top:4.6rem;
     background:var(--kinari);
     color:var(--sumi);
     font-family:var(--font-body);
@@ -419,12 +420,34 @@
   }
 
   :focus-visible{ outline:2px solid var(--shu); outline-offset:2px; }
+
+  /* ============ Site header (fixed) ============ */
+  .site-header{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:var(--ai-deep);
+    border-bottom:1px solid rgba(217,179,108,.3);
+    padding:1rem 0;
+  }
+  .site-header .brand{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(1.3rem,3.2vw,1.9rem);
+    letter-spacing:.03em;
+    color:var(--kinari);
+    text-decoration:none;
+    display:inline-block;
+  }
 </style>
 </head>
 <body>
 
+<header class="site-header">
+  <div class="wrap"><a class="brand" href="#top">shinEDO project</a></div>
+</header>
+
+
 <!-- ============ Hero ============ -->
-<section class="hero">
+<section class="hero" id="top">
   <div class="wrap">
     <p class="eyebrow">shinEDO project</p>
     <h1>江戸に学び、<br>明日をつくる。</h1>
