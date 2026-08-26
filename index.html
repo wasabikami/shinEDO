@@ -332,7 +332,13 @@
     background:var(--kinari-dim);
   }
   .leaflet-popup-content{ font-family:var(--font-body); font-size:.9rem; }
-  .leaflet-popup-content b{ font-family:var(--font-display); color:var(--ai); }
+  .leaflet-popup-content b,
+  .leaflet-popup-content .popup-name{
+    font-family:var(--font-display); font-weight:600; color:var(--ai);
+  }
+  .leaflet-popup-content a.popup-name{ text-decoration:none; }
+  .leaflet-popup-content a.popup-name:hover{ text-decoration:underline; }
+  .leaflet-popup-content .popup-address{ font-size:.82em; color:#5a5347; }
 
   /* ============ Signature element: hanko stamp CTA ============ */
   .hanko-wrap{
@@ -749,11 +755,12 @@ function renderMemberMap(members){
 
   const markers = pinned.map(m => {
     const safeUrl = /^https?:\/\//i.test(m.url || '') ? m.url : null;
+    const nameHtml = safeUrl
+      ? `<a class="popup-name" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.name)}</a>`
+      : `<b>${escapeHtml(m.name)}</b>`;
     const popup = `
-      <b>${escapeHtml(m.name)}</b><br>
-      ${escapeHtml(m.category || '')}
-      ${m.address ? '<br>' + escapeHtml(m.address) : ''}
-      ${safeUrl ? `<br><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">サイトを見る</a>` : ''}
+      ${nameHtml}
+      ${m.address ? `<br><span class="popup-address">${escapeHtml(m.address)}</span>` : ''}
     `;
     return L.marker([m.lat, m.lng]).addTo(map).bindPopup(popup);
   });
