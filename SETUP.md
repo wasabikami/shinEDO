@@ -58,6 +58,30 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOi...（長い文字列）';
   alter table members add column if not exists url text;
   ```
 
+## 5. 管理ページ（承認・却下）
+サイトとは別に `admin.html` があり、ログインした管理者だけが応募の承認・却下・非公開への差し戻しができます。
+
+### 初めて管理者を作るとき
+1. Supabase管理画面 → 左メニュー「Authentication」→「Users」→「Add user」
+   管理者にしたい人のメールアドレスとパスワードを設定して作成（「Auto Confirm User」はONにしてください）
+2. 作成されたユーザーの行にある **User UID**（長い英数字）をコピー
+3. 「SQL Editor」で次を実行（`<UUID>` をコピーしたものに置き換える）
+   ```sql
+   insert into admins (user_id) values ('<UUID>');
+   ```
+4. `admin.html` をブラウザで開き（例：`https://（アカウント名）.github.io/shinEDO/admin.html`）、
+   設定したメールアドレスとパスワードでログイン
+
+管理者を増やしたいときは、1〜3を繰り返してください（同じユーザーに対して2回INSERTしないよう注意）。
+
+### 管理ページでできること
+- 承認待ちの応募一覧の確認（連絡先・住所・URL・一言メッセージも表示）
+- 「承認」ボタンで公開（`status` を `approved` に変更）
+- 「非公開に戻す」ボタンで一覧から非表示に戻す
+- 「削除」ボタンでデータそのものを削除
+
+`admin.html` はGoogle検索などには載らないようにしてありますが、URLを知っていれば誰でもページ自体は開けます（ログインしない限り中身は操作できません）。より厳重にしたい場合は、URLを人に教えないようにしてください。
+
 ## 補足
 - Supabaseの設定をしなくても、HTML単体で見た目の確認はできます（お話会・会員欄は「Supabase未接続」と表示されます）
 - 無料枠の範囲であれば費用はかかりません

@@ -36,11 +36,17 @@ create table if not exists events (
   status text not null default 'upcoming'   -- upcoming（予定） / done（終了）
 );
 
+-- 管理者テーブル：ログインして承認作業ができる人（Supabase Authのユーザーと1対1）
+create table if not exists admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+
 -- ------------------------------------------------------------
 -- RLS（Row Level Security）を有効化
 -- ------------------------------------------------------------
 alter table members enable row level security;
 alter table events  enable row level security;
+alter table admins  enable row level security;
 
 -- 会員：誰でも「応募」として新規登録できる（承認待ちのみ）
 create policy "members: public insert"
@@ -54,11 +60,36 @@ create policy "members: public read approved"
   to anon
   using ( status = 'approved' );
 
+-- 会員：管理者はpending含む全件を閲覧できる
+create policy "members: admin read all"
+  on members for select
+  to authenticated
+  using ( exists (select 1 from admins where user_id = auth.uid()) );
+
+-- 会員：管理者は承認・編集ができる
+create policy "members: admin update"
+  on members for update
+  to authenticated
+  using ( exists (select 1 from admins where user_id = auth.uid()) )
+  with check ( exists (select 1 from admins where user_id = auth.uid()) );
+
+-- 会員：管理者は却下（削除）ができる
+create policy "members: admin delete"
+  on members for delete
+  to authenticated
+  using ( exists (select 1 from admins where user_id = auth.uid()) );
+
 -- お話会：誰でも閲覧できる
 create policy "events: public read"
   on events for select
   to anon
   using ( true );
+
+-- 管理者：自分が管理者かどうかを確認できる（自分の行だけ）
+create policy "admins: self read"
+  on admins for select
+  to authenticated
+  using ( user_id = auth.uid() );
 
 -- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理ページ — shinEDO project</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ai: #1F3A5F;
+    --ai-deep: #12253C;
+    --kinari: #F2ECD9;
+    --sumi: #211D18;
+    --shu: #BB4430;
+    --kincha: #A9812D;
+    --font-display: 'Shippori Mincho', serif;
+    --font-label: 'Zen Kaku Gothic New', sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--kinari);
+    color:var(--sumi);
+    font-family:var(--font-label);
+    line-height:1.7;
+  }
+  .wrap{ max-width:56rem; margin:0 auto; padding:2.5rem 1.5rem 5rem; }
+  h1{
+    font-family:var(--font-display);
+    color:var(--ai);
+    font-size:1.5rem;
+    margin:0 0 .3em;
+  }
+  .muted{ color:#5a5347; font-size:.85rem; margin:0 0 2em; }
+
+  /* ---- login ---- */
+  #loginView{ max-width:24rem; margin:4rem auto 0; }
+  .field{ margin-bottom:1rem; }
+  .field label{ display:block; font-size:.8rem; margin-bottom:.4em; color:var(--ai); }
+  .field input{
+    width:100%; padding:.7em .9em; font-size:.95rem;
+    border:1px solid rgba(31,58,95,.3); border-radius:2px; background:#fff;
+  }
+  .btn{
+    font-family:var(--font-label); font-size:.9rem; letter-spacing:.05em;
+    background:var(--ai); color:var(--kinari); border:none;
+    padding:.75em 1.4em; border-radius:2px; cursor:pointer;
+  }
+  .btn:hover{ background:var(--ai-deep); }
+  .btn.danger{ background:var(--shu); }
+  .btn.ghost{ background:transparent; color:var(--ai); border:1px solid rgba(31,58,95,.3); }
+  .msg{ font-size:.85rem; margin-top:.8em; min-height:1.2em; }
+  .msg.err{ color:var(--shu); }
+  .msg.ok{ color:#3d6b3d; }
+
+  /* ---- admin panel ---- */
+  #adminView{ display:none; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+
+  table{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  th, td{ text-align:left; padding:.7em .6em; border-bottom:1px solid rgba(31,58,95,.14); vertical-align:top; }
+  th{ font-size:.72rem; letter-spacing:.05em; color:var(--ai); }
+  tr.pending{ background:rgba(187,68,48,.05); }
+  .status-badge{
+    display:inline-block; font-size:.72rem; padding:.25em .7em; border-radius:999px;
+    border:1px solid rgba(31,58,95,.3); color:var(--ai);
+  }
+  .status-badge.pending{ border-color:var(--shu); color:var(--shu); }
+  .row-actions{ display:flex; gap:.5em; flex-wrap:wrap; }
+  .row-actions button{
+    font-family:var(--font-label); font-size:.78rem; padding:.4em .8em;
+    border-radius:2px; cursor:pointer; border:1px solid rgba(31,58,95,.3);
+    background:#fff; color:var(--ai);
+  }
+  .row-actions button.approve{ background:var(--ai); color:var(--kinari); border-color:var(--ai); }
+  .row-actions button.reject{ background:var(--shu); color:var(--kinari); border-color:var(--shu); }
+  .cell-small{ font-size:.8em; color:#5a5347; }
+  .state-msg{ font-size:.85rem; color:#8a8270; padding:1rem 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>shinEDO project — 管理ページ</h1>
+  <p class="muted">応募の承認・却下は、ログインした管理者だけが行えます。</p>
+
+  <div id="loginView">
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">メールアドレス</label>
+        <input id="loginEmail" type="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginPassword">パスワード</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn">ログイン</button>
+      <p id="loginMsg" class="msg" role="status"></p>
+    </form>
+  </div>
+
+  <div id="adminView">
+    <div class="topbar">
+      <span id="whoami" class="muted" style="margin:0;"></span>
+      <button id="logoutBtn" class="btn ghost">ログアウト</button>
+    </div>
+    <div id="memberTableWrap">
+      <p class="state-msg">読み込み中…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lfzvxkyhbzptwnrqesbq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_caS_cQE_TjtzJRQKSul2RQ_KmNN2uR4';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loginView = document.getElementById('loginView');
+const adminView = document.getElementById('adminView');
+const loginForm = document.getElementById('loginForm');
+const loginMsg = document.getElementById('loginMsg');
+const whoami = document.getElementById('whoami');
+const tableWrap = document.getElementById('memberTableWrap');
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+}
+
+async function init(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) showAdmin(session);
+  else showLogin();
+}
+
+function showLogin(){
+  loginView.style.display = 'block';
+  adminView.style.display = 'none';
+}
+
+async function showAdmin(session){
+  loginView.style.display = 'none';
+  adminView.style.display = 'block';
+  whoami.textContent = session.user.email;
+  await loadMembers();
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginMsg.textContent = 'ログイン中…';
+  loginMsg.className = 'msg';
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: document.getElementById('loginEmail').value.trim(),
+    password: document.getElementById('loginPassword').value
+  });
+  if (error){
+    loginMsg.textContent = 'ログインできませんでした。メールアドレスとパスワードを確認してください。';
+    loginMsg.className = 'msg err';
+    return;
+  }
+  loginMsg.textContent = '';
+  await showAdmin(data.session);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  showLogin();
+});
+
+async function loadMembers(){
+  tableWrap.innerHTML = '<p class="state-msg">読み込み中…</p>';
+  const { data, error } = await supabaseClient
+    .from('members')
+    .select('*')
+    .order('status', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (error){
+    tableWrap.innerHTML = `<p class="state-msg">読み込めませんでした（あなたは管理者として登録されていない可能性があります）。<br>${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || data.length === 0){
+    tableWrap.innerHTML = '<p class="state-msg">会員データがありません。</p>';
+    return;
+  }
+
+  const rows = data.map(m => `
+    <tr class="${m.status === 'pending' ? 'pending' : ''}" data-id="${m.id}">
+      <td>
+        <span class="status-badge ${m.status === 'pending' ? 'pending' : ''}">${m.status === 'pending' ? '承認待ち' : '公開中'}</span>
+      </td>
+      <td>
+        <div>${escapeHtml(m.name)}</div>
+        <div class="cell-small">${escapeHtml(m.category)}</div>
+      </td>
+      <td class="cell-small">
+        ${m.contact ? escapeHtml(m.contact) + '<br>' : ''}
+        ${m.address ? escapeHtml(m.address) + '<br>' : ''}
+        ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.url)}</a><br>` : ''}
+        ${m.message ? escapeHtml(m.message) : ''}
+      </td>
+      <td>
+        <div class="row-actions">
+          ${m.status === 'pending' ? '<button class="approve" data-action="approve">承認</button>' : '<button data-action="unapprove">非公開に戻す</button>'}
+          <button class="reject" data-action="delete">削除</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  tableWrap.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>状態</th><th>名前・区分</th><th>詳細</th><th>操作</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  tableWrap.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.closest('tr').dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      if (action === 'approve'){
+        await supabaseClient.from('members').update({ status: 'approved' }).eq('id', id);
+      } else if (action === 'unapprove'){
+        await supabaseClient.from('members').update({ status: 'pending' }).eq('id', id);
+      } else if (action === 'delete'){
+        if (!confirm('このデータを削除します。よろしいですか？')) { btn.disabled = false; return; }
+        await supabaseClient.from('members').delete().eq('id', id);
+      }
+      await loadMembers();
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
