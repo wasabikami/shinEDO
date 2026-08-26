@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>shinEDO project — 江戸に学び、明日をつくる。</title>
+<meta name="description" content="江戸時代の素晴らしさと現代の素晴らしさの融合と調和を、実験し実践する。shinEDO projectは全国から参加者を募集しています。">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+  /* ============ Design tokens ============ */
+  :root{
+    --ai:        #1F3A5F;   /* 藍色 — indigo, primary */
+    --ai-deep:   #12253C;   /* 濃藍 — deep indigo, dark sections */
+    --kinari:    #F2ECD9;   /* 生成り — washi cream, background */
+    --kinari-dim:#E9E1C7;   /* washi shadow tone */
+    --sumi:      #211D18;   /* 墨 — ink black, text */
+    --shu:       #BB4430;   /* 朱 — vermilion, hanko stamp accent */
+    --kincha:    #A9812D;   /* 金茶 — muted gold, hairlines/dividers */
+
+    --font-display: 'Shippori Mincho', 'Noto Serif JP', serif;
+    --font-body: 'Noto Serif JP', serif;
+    --font-label: 'Zen Kaku Gothic New', sans-serif;
+
+    --measure: 42rem;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--kinari);
+    color:var(--sumi);
+    font-family:var(--font-body);
+    line-height:1.9;
+    font-feature-settings:"palt";
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* subtle washi paper texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    z-index:0;
+    opacity:.5;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(169,129,45,.05) 0, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(31,58,95,.05) 0, transparent 45%);
+  }
+
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:var(--measure);
+    margin:0 auto;
+    padding:0 1.5rem;
+  }
+  .wrap--wide{ max-width:60rem; }
+
+  section{ padding:6rem 0; position:relative; }
+  @media (max-width:640px){ section{ padding:4rem 0; } }
+
+  .eyebrow{
+    font-family:var(--font-label);
+    font-size:.72rem;
+    letter-spacing:.28em;
+    color:var(--shu);
+    text-transform:uppercase;
+    display:flex; align-items:center; gap:.6em;
+    margin:0 0 1.4em;
+  }
+  .eyebrow::before{
+    content:"";
+    width:1.6em; height:1px;
+    background:var(--shu);
+    display:inline-block;
+  }
+
+  h1,h2,h3{
+    font-family:var(--font-display);
+    font-weight:600;
+    color:var(--ai);
+    margin:0 0 .6em;
+    letter-spacing:.02em;
+  }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.05rem); }
+  p{ margin:0 0 1.2em; }
+  .lead{ font-size:1.08rem; color:var(--sumi); }
+  .muted{ color:#5a5347; font-size:.95rem; }
+
+  /* hairline divider, gold */
+  .divider{
+    width:100%; height:1px;
+    background:linear-gradient(90deg, transparent, var(--kincha) 20%, var(--kincha) 80%, transparent);
+    opacity:.55;
+  }
+
+  /* ============ Reveal on scroll ============ */
+  .reveal{
+    opacity:0; transform:translateY(18px);
+    transition:opacity .8s ease, transform .8s ease;
+  }
+  .reveal.is-visible{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+  }
+
+  /* ============ Hero ============ */
+  .hero{
+    min-height:88vh;
+    display:flex; flex-direction:column; justify-content:center;
+    background:
+      linear-gradient(180deg, rgba(18,37,60,0) 0%, rgba(18,37,60,0) 100%),
+      var(--ai);
+    color:var(--kinari);
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    /* faint concentric ripple, like ink dropped in water — motif for 融合 */
+    content:"";
+    position:absolute; right:-10%; top:50%; transform:translateY(-50%);
+    width:60vw; height:60vw; max-width:640px; max-height:640px;
+    border-radius:50%;
+    border:1px solid rgba(242,236,217,.14);
+    box-shadow:
+      0 0 0 40px rgba(242,236,217,.05),
+      0 0 0 90px rgba(242,236,217,.03),
+      0 0 0 150px rgba(242,236,217,.015);
+    pointer-events:none;
+  }
+  .hero .wrap{ position:relative; z-index:2; }
+  .hero .eyebrow{ color:#D9B36C; }
+  .hero .eyebrow::before{ background:#D9B36C; }
+  .hero h1{
+    color:var(--kinari);
+    font-size:clamp(2.1rem,6vw,3.6rem);
+    line-height:1.35;
+    margin-bottom:.5em;
+  }
+  .hero .lead{
+    color:#D8D2BF;
+    max-width:32em;
+    font-size:1.08rem;
+  }
+  .hero .scroll-hint{
+    margin-top:3rem;
+    font-family:var(--font-label);
+    font-size:.72rem;
+    letter-spacing:.2em;
+    color:#9AA6B4;
+    display:flex; align-items:center; gap:.6em;
+  }
+  .scroll-hint .line{
+    width:1px; height:2.4rem; background:#9AA6B4;
+    animation:pulse-line 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse-line{
+    0%,100%{ opacity:.25; } 50%{ opacity:.9; }
+  }
+
+  /* ============ Problem stats ============ */
+  .stat-cloud{
+    display:flex; flex-wrap:wrap; gap:.7em .9em;
+    margin:2em 0 0;
+  }
+  .stat-cloud span{
+    font-family:var(--font-label);
+    font-size:.86rem;
+    padding:.5em 1em;
+    border:1px solid rgba(31,58,95,.28);
+    border-radius:2px;
+    color:var(--ai);
+    background:rgba(31,58,95,.04);
+  }
+
+  /* ============ Not-anti-modern callout ============ */
+  .callout{
+    border-left:3px solid var(--kincha);
+    padding:.2em 0 .2em 1.4em;
+    margin:1.6em 0;
+  }
+  .callout p{ margin:0; color:var(--sumi); }
+
+  /* ============ Questions — calligraphy scatter ============ */
+  .question-field{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(11rem,1fr));
+    gap:1.1rem 1.4rem;
+    margin-top:2.2rem;
+  }
+  .question-field .q{
+    font-family:var(--font-display);
+    font-size:1.28rem;
+    color:var(--ai);
+    line-height:1.55;
+    position:relative;
+    padding-top:.9em;
+  }
+  .question-field .q::before{
+    content:"問";
+    position:absolute; top:0; left:0;
+    font-family:var(--font-label);
+    font-size:.62rem;
+    letter-spacing:.15em;
+    color:var(--shu);
+    border:1px solid var(--shu);
+    padding:.15em .4em;
+    border-radius:1px;
+  }
+
+  /* ============ dark section (recruitment belief) ============ */
+  .section--dark{
+    background:var(--ai-deep);
+    color:var(--kinari);
+  }
+  .section--dark h2{ color:var(--kinari); }
+  .section--dark .eyebrow{ color:#D9B36C; }
+  .section--dark .eyebrow::before{ background:#D9B36C; }
+  .section--dark p{ color:#D8D2BF; }
+  .section--dark .divider{ background:linear-gradient(90deg, transparent, rgba(217,179,108,.5) 20%, rgba(217,179,108,.5) 80%, transparent); }
+
+  .target-grid{
+    display:flex; flex-wrap:wrap; gap:.6em;
+    margin:1.8em 0;
+  }
+  .target-grid span{
+    font-family:var(--font-label);
+    font-size:.85rem;
+    padding:.55em 1.1em;
+    border:1px solid rgba(242,236,217,.3);
+    border-radius:999px;
+    color:var(--kinari);
+  }
+
+  .belief-line{
+    font-family:var(--font-display);
+    font-size:1.15rem;
+    color:#EADFC0;
+    border-top:1px solid rgba(217,179,108,.35);
+    padding-top:1.4em;
+    margin-top:1.8em;
+  }
+
+  /* ============ Rules ============ */
+  .rules{
+    display:grid; gap:1.4rem;
+    margin-top:1.8rem;
+  }
+  .rule{
+    background:rgba(31,58,95,.035);
+    border:1px solid rgba(31,58,95,.14);
+    padding:1.4rem 1.6rem;
+    border-radius:2px;
+  }
+  .rule .rule-head{
+    font-family:var(--font-label);
+    font-weight:700;
+    color:var(--ai);
+    font-size:.95rem;
+    margin-bottom:.5em;
+  }
+  .rule .rule-note{
+    font-size:.9rem;
+    color:#5a5347;
+    margin:.4em 0 0;
+  }
+
+  /* ============ Dynamic: events ============ */
+  .event-list{ display:grid; gap:0; margin-top:1.6rem; border-top:1px solid rgba(31,58,95,.16); }
+  .event-row{
+    display:grid;
+    grid-template-columns:7rem 1fr auto;
+    gap:1rem;
+    align-items:baseline;
+    padding:1.1rem 0;
+    border-bottom:1px solid rgba(31,58,95,.16);
+  }
+  @media (max-width:560px){
+    .event-row{ grid-template-columns:1fr; gap:.2rem; }
+  }
+  .event-row .date{ font-family:var(--font-label); font-size:.82rem; color:var(--shu); }
+  .event-row .guest{ font-family:var(--font-display); font-size:1.05rem; color:var(--ai); }
+  .event-row .theme{ font-size:.85rem; color:#5a5347; }
+  .event-row .tag{
+    font-family:var(--font-label); font-size:.72rem;
+    padding:.3em .7em; border-radius:999px;
+    border:1px solid rgba(31,58,95,.25); color:var(--ai);
+    white-space:nowrap; height:fit-content;
+  }
+  .event-row .tag.tag--done{ opacity:.5; }
+
+  .state-msg{ font-family:var(--font-label); font-size:.85rem; color:#8a8270; padding:1rem 0; }
+
+  /* ============ Dynamic: members ============ */
+  .member-count{
+    font-family:var(--font-display);
+    font-size:2.6rem;
+    color:var(--ai);
+    display:flex; align-items:baseline; gap:.4rem;
+  }
+  .member-count .unit{ font-family:var(--font-label); font-size:.95rem; color:#5a5347; }
+  .member-tiles{
+    display:flex; flex-wrap:wrap; gap:.55em;
+    margin-top:1.6rem;
+  }
+  .member-tiles span{
+    font-family:var(--font-label); font-size:.82rem;
+    padding:.5em 1em; border-radius:2px;
+    background:rgba(169,129,45,.08);
+    border:1px solid rgba(169,129,45,.3);
+    color:var(--sumi);
+  }
+
+  /* ============ Dynamic: map ============ */
+  #member-map{
+    width:100%; height:26rem;
+    margin-top:1.8rem;
+    border:1px solid rgba(31,58,95,.2);
+    border-radius:2px;
+    background:var(--kinari-dim);
+  }
+  .leaflet-popup-content{ font-family:var(--font-body); font-size:.9rem; }
+  .leaflet-popup-content b{ font-family:var(--font-display); color:var(--ai); }
+
+  /* ============ Signature element: hanko stamp CTA ============ */
+  .hanko-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center;
+    padding:3rem 0 1rem;
+  }
+  .hanko-btn{
+    position:relative;
+    width:9.5rem; height:9.5rem;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .hanko-btn svg{ width:100%; height:100%; }
+  .hanko-btn:active{ transform:scale(.94); }
+  .hanko-btn{ transition:transform .18s cubic-bezier(.34,1.56,.64,1); }
+  .hanko-label{
+    margin-top:1.3rem;
+    font-family:var(--font-label);
+    font-size:.85rem;
+    letter-spacing:.12em;
+    color:var(--ai);
+  }
+
+  /* ============ Form ============ */
+  .apply-form{
+    max-width:30rem; margin:2.4rem auto 0;
+    display:grid; gap:1.1rem;
+    text-align:left;
+  }
+  .apply-form.is-hidden{ display:none; }
+  .field label{
+    display:block; font-family:var(--font-label);
+    font-size:.78rem; letter-spacing:.05em;
+    color:var(--ai); margin-bottom:.5em;
+  }
+  .field select, .field input, .field textarea{
+    width:100%;
+    font-family:var(--font-body);
+    font-size:.95rem;
+    padding:.75em .9em;
+    border:1px solid rgba(31,58,95,.3);
+    background:#fff;
+    border-radius:2px;
+    color:var(--sumi);
+  }
+  .field select:focus, .field input:focus, .field textarea:focus{
+    outline:2px solid var(--shu); outline-offset:1px;
+  }
+  .field textarea{ min-height:6rem; resize:vertical; }
+  .submit-btn{
+    font-family:var(--font-label);
+    font-size:.9rem; letter-spacing:.08em;
+    background:var(--ai);
+    color:var(--kinari);
+    border:none;
+    padding:.9em 1.4em;
+    border-radius:2px;
+    cursor:pointer;
+    transition:background .2s ease;
+  }
+  .submit-btn:hover{ background:var(--ai-deep); }
+  .submit-btn:focus-visible{ outline:2px solid var(--shu); outline-offset:2px; }
+  .form-msg{ font-family:var(--font-label); font-size:.85rem; margin-top:.6rem; min-height:1.2em; }
+  .form-msg.ok{ color:#3d6b3d; }
+  .form-msg.err{ color:var(--shu); }
+
+  /* ============ Footer ============ */
+  footer{
+    padding:3.5rem 0 2.5rem;
+    text-align:center;
+    color:#8a8270;
+    font-family:var(--font-label);
+    font-size:.78rem;
+    letter-spacing:.05em;
+  }
+  footer .brand{
+    font-family:var(--font-display);
+    color:var(--ai);
+    font-size:.95rem;
+    margin-bottom:.4em;
+  }
+
+  :focus-visible{ outline:2px solid var(--shu); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">shinEDO project</p>
+    <h1>江戸に学び、<br>明日をつくる。</h1>
+    <p class="lead">江戸時代の素晴らしさと、現代の素晴らしさ。その融合と調和を、実験し、実践する。</p>
+    <div class="scroll-hint"><span class="line"></span>SCROLL</div>
+  </div>
+</section>
+
+<!-- ============ 問題提起 ============ -->
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">見過ごせない現実</p>
+    <h2>江戸時代と比べて、<br>明らかに異常なほど増えているもの。</h2>
+    <p class="lead">大人も、例外ではありません。</p>
+    <div class="stat-cloud">
+      <span>アトピー性皮膚炎</span>
+      <span>花粉症</span>
+      <span>発達障害</span>
+      <span>多動症</span>
+      <span>うつ病</span>
+      <span>登校拒否</span>
+      <span>自殺</span>
+      <span>突然死</span>
+      <span>その他の成人病</span>
+    </div>
+
+    <div class="callout">
+      <p>車やバイク、トラクターや農機具、家電製品、スマホやパソコン、AIといった近代化を、全否定するわけではありません。</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- ============ 5つの問い ============ -->
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">自分の頭で、考える</p>
+    <h2>豊かさとは何か。進歩とは。<br>幸せとは。美しさとは。日本らしさとは。</h2>
+    <p class="lead">テレビやSNSの誰かの受け売りや、オウム返しではなく。もう一度、日本の歴史から学び、現代に活かす。</p>
+    <div class="question-field">
+      <div class="q">豊かさとは<br>何か？</div>
+      <div class="q">進歩とは？</div>
+      <div class="q">幸せとは？</div>
+      <div class="q">美しさとは？</div>
+      <div class="q">日本らしさとは？</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 募集・理念（dark） ============ -->
+<section class="section--dark">
+  <div class="wrap reveal">
+    <p class="eyebrow">この指とーまれ ☝️</p>
+    <h2>子供の手本となり、大人の手本となり、<br>地方の、日本の、世界の手本となる生き方を。</h2>
+    <p>それを模索し、実践するリーダー・チャレンジャー・支援者・会員を、全国から募集します。</p>
+
+    <p class="muted" style="color:#B9C4D2;">対象は、そのすべて。</p>
+    <div class="target-grid">
+      <span>個人</span><span>里</span><span>村</span><span>コミュニティ</span><span>団体</span><span>会社</span><span>企業</span>
+    </div>
+
+    <p style="max-width:36em;">和の文化・伝統・精神性・誇りを、子供たちの未来と日本の未来を、いま起こっている現実から読み解く。過去から現在、そして理想の未来へ。プロジェクトメンバーと共に実践し、報告し合い、高め合うことで、江戸時代を手本とした、近代科学を否定しない新しい生き方や暮らしを創造する。</p>
+
+    <p class="belief-line">その点をつなげば日本地図が完成した時。それが、日本の建て替え建て直しが完成した時であり、子供たちの未来を守れた時だと、信じています。</p>
+  </div>
+</section>
+
+<!-- ============ 参加ルール ============ -->
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">参加するにあたって</p>
+    <h2>出来るか出来ないかではなく、<br>やらなければならないと思う人へ。</h2>
+    <div class="rules">
+      <div class="rule">
+        <p class="rule-head">① 参加は、自分の意思で。</p>
+        <p class="rule-note">参加したことを、他者のせいにする方は、最初から不参加でお願いします。</p>
+      </div>
+      <div class="rule">
+        <p class="rule-head">② 不満があれば、自主的に抜けてください。</p>
+        <p class="rule-note">クレーマーは受け付けません。気に入らない場合には、退会してください。怒りの文句と、愛の提案は違います。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<!-- ============ お話会（動的） ============ -->
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">お話会</p>
+    <h2>実践と報告を、共に。</h2>
+    <p class="muted">メンバーが持ち寄る話を聞き、語り合う場です。</p>
+    <div id="event-list" class="event-list">
+      <p class="state-msg">読み込み中…</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 会員（動的） ============ -->
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">参加している仲間</p>
+    <h2>いま、集まっている数。</h2>
+    <div id="member-count" class="member-count">—<span class="unit">人・団体</span></div>
+    <div id="member-tiles" class="member-tiles"></div>
+    <div id="member-map"></div>
+  </div>
+</section>
+
+<!-- ============ 応募フォーム ============ -->
+<section id="apply">
+  <div class="wrap reveal">
+    <div class="hanko-wrap">
+      <button type="button" class="hanko-btn" id="hankoBtn" aria-expanded="false" aria-controls="applyForm" aria-label="この指とーまれ — 参加フォームを開く">
+        <svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="inkTexture" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="4"/>
+            </filter>
+          </defs>
+          <g filter="url(#inkTexture)" transform="rotate(-3 70 70)">
+            <circle cx="70" cy="70" r="60" fill="none" stroke="#BB4430" stroke-width="6"/>
+            <text x="70" y="58" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="21" fill="#BB4430" font-weight="600">この指</text>
+            <text x="70" y="88" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="21" fill="#BB4430" font-weight="600">とーまれ</text>
+          </g>
+        </svg>
+      </button>
+      <p class="hanko-label">押して、参加する</p>
+    </div>
+
+    <form id="applyForm" class="apply-form is-hidden">
+      <div class="field">
+        <label for="f-category">参加の形</label>
+        <select id="f-category" required>
+          <option value="">選んでください</option>
+          <option value="個人">個人</option>
+          <option value="里・村">里・村</option>
+          <option value="コミュニティ">コミュニティ</option>
+          <option value="団体・会社・企業">団体・会社・企業</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-name">お名前 / 団体名</label>
+        <input id="f-name" type="text" required>
+      </div>
+      <div class="field">
+        <label for="f-contact">連絡先（メールなど）</label>
+        <input id="f-contact" type="text" required>
+      </div>
+      <div class="field">
+        <label for="f-message">一言（任意）</label>
+        <textarea id="f-message"></textarea>
+      </div>
+      <button type="submit" class="submit-btn">この指とーまれ、で送る</button>
+      <p id="formMsg" class="form-msg" role="status"></p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <p class="brand">shinEDO project</p>
+  <p>wasabi企画</p>
+</footer>
+
+<script>
+/* =========================================================
+   Supabase 接続設定
+   ここに、あなたのSupabaseプロジェクトの URL と anon key を入れてください。
+   Supabase管理画面 → Project Settings → API から取得できます。
+   ========================================================= */
+const SUPABASE_URL = 'https://lfzvxkyhbzptwnrqesbq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_caS_cQE_TjtzJRQKSul2RQ_KmNN2uR4';
+
+let supabaseClient = null;
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && window.supabase) {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+/* ---------- scroll reveal ---------- */
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('is-visible'); });
+}, { threshold: 0.12 });
+revealEls.forEach(el => io.observe(el));
+
+/* ---------- events ---------- */
+async function loadEvents(){
+  const el = document.getElementById('event-list');
+  if (!supabaseClient){
+    el.innerHTML = '<p class="state-msg">Supabaseが未接続です。SUPABASE_URLとSUPABASE_ANON_KEYを設定してください。</p>';
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from('events')
+    .select('*')
+    .order('event_date', { ascending: true });
+
+  if (error){ el.innerHTML = '<p class="state-msg">お話会の情報を読み込めませんでした。</p>'; return; }
+  if (!data || data.length === 0){ el.innerHTML = '<p class="state-msg">まだお話会の予定はありません。</p>'; return; }
+
+  el.innerHTML = data.map(ev => `
+    <div class="event-row">
+      <div class="date">${ev.event_date ? formatDate(ev.event_date) : ''}</div>
+      <div>
+        <div class="guest">${escapeHtml(ev.guest_name || '')}</div>
+        <div class="theme">${escapeHtml(ev.theme || '')}</div>
+      </div>
+      <div class="tag ${ev.status === 'done' ? 'tag--done' : ''}">${ev.status === 'done' ? '終了' : '予定'}</div>
+    </div>
+  `).join('');
+}
+
+/* ---------- members ---------- */
+async function loadMembers(){
+  const countEl = document.getElementById('member-count');
+  const tilesEl = document.getElementById('member-tiles');
+  const mapEl = document.getElementById('member-map');
+  if (!supabaseClient){
+    countEl.innerHTML = '—<span class="unit">Supabase未接続</span>';
+    mapEl.innerHTML = '<p class="state-msg" style="padding:1.5rem;">Supabaseが未接続です。</p>';
+    return;
+  }
+  const { data, count, error } = await supabaseClient
+    .from('members')
+    .select('name, category, address, lat, lng', { count: 'exact' })
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(24);
+
+  if (error){
+    countEl.innerHTML = '—<span class="unit">読み込みエラー</span>';
+    mapEl.innerHTML = '<p class="state-msg" style="padding:1.5rem;">地図を読み込めませんでした。</p>';
+    return;
+  }
+
+  countEl.innerHTML = `${count ?? (data ? data.length : 0)}<span class="unit">人・団体</span>`;
+  tilesEl.innerHTML = (data || []).map(m => `<span>${escapeHtml(m.name)}</span>`).join('');
+  renderMemberMap(data || []);
+}
+
+/* ---------- members map ---------- */
+function renderMemberMap(members){
+  const mapEl = document.getElementById('member-map');
+  const pinned = members.filter(m => typeof m.lat === 'number' && typeof m.lng === 'number');
+
+  if (!window.L || pinned.length === 0){
+    mapEl.innerHTML = '<p class="state-msg" style="padding:1.5rem;">まだ地図に表示できる仲間がいません。</p>';
+    return;
+  }
+
+  const map = L.map(mapEl, { scrollWheelZoom: false }).setView([pinned[0].lat, pinned[0].lng], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 18
+  }).addTo(map);
+
+  const markers = pinned.map(m => {
+    const popup = `<b>${escapeHtml(m.name)}</b><br>${escapeHtml(m.category || '')}${m.address ? '<br>' + escapeHtml(m.address) : ''}`;
+    return L.marker([m.lat, m.lng]).addTo(map).bindPopup(popup);
+  });
+
+  if (markers.length > 1){
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
+  }
+}
+
+/* ---------- hanko / form toggle ---------- */
+const hankoBtn = document.getElementById('hankoBtn');
+const applyForm = document.getElementById('applyForm');
+hankoBtn.addEventListener('click', () => {
+  const willShow = applyForm.classList.contains('is-hidden');
+  applyForm.classList.toggle('is-hidden');
+  hankoBtn.setAttribute('aria-expanded', String(willShow));
+  if (willShow) applyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+/* ---------- form submit ---------- */
+applyForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = document.getElementById('formMsg');
+  const payload = {
+    category: document.getElementById('f-category').value,
+    name: document.getElementById('f-name').value.trim(),
+    contact: document.getElementById('f-contact').value.trim(),
+    message: document.getElementById('f-message').value.trim(),
+    status: 'pending'
+  };
+
+  if (!supabaseClient){
+    msgEl.textContent = 'Supabaseが未接続のため、送信できません。管理者へ設定を依頼してください。';
+    msgEl.className = 'form-msg err';
+    return;
+  }
+
+  msgEl.textContent = '送っています…';
+  msgEl.className = 'form-msg';
+
+  const { error } = await supabaseClient.from('members').insert(payload);
+  if (error){
+    msgEl.textContent = '送信に失敗しました。時間をおいて、もう一度お試しください。';
+    msgEl.className = 'form-msg err';
+    return;
+  }
+  msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。';
+  msgEl.className = 'form-msg ok';
+  applyForm.reset();
+});
+
+/* ---------- utils ---------- */
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+}
+function formatDate(d){
+  const dt = new Date(d);
+  if (isNaN(dt)) return d;
+  return `${dt.getMonth()+1}/${dt.getDate()}`;
+}
+
+loadEvents();
+loadMembers();
+</script>
+</body>
+</html>
