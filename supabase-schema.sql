@@ -99,13 +99,13 @@ create policy "admins: self read"
 -- 動作確認用のサンプルデータ（不要であれば削除してください）
 -- ------------------------------------------------------------
 insert into events (event_date, guest_name, theme, url, status) values
-  ('2026-05-18', '梅ちゃん＆遠山克彦さん', '座談会',
+  ('2026-05-18', '愛菜ファームSin 遠山克彦さんと和咲美 梅ちゃん', '座談会',
     'https://satoyama3.my.canva.site/talk3', 'done'),
-  ('2026-09-28', 'MIROC BEER 知ちゃん(岩城知明)×和咲美 梅ちゃん', '座談会',
+  ('2026-09-28', 'MIROC BEER 岩城知明さんと和咲美 梅ちゃん', '座談会',
     'https://satoyama3.my.canva.site/talk44', 'upcoming'),
-  ('2026-10-26', '空手の達人であり歌手さん', 'お話会',
+  ('2026-10-26', '空手の達人であり歌手さんと和咲美 梅ちゃん', '座談会',
     'https://satoyama3.my.canva.site/talk5', 'upcoming'),
-  ('2026-12-14', '達磨草履工房', '座談会（12/14(月)〜12/15(火)・12月のお話会）',
+  ('2026-12-14', '達磨草履工房さんと和咲美', 'リトリート（12/14(月)・12/15(火)）',
     'https://satoyama3.my.canva.site/talk6', 'upcoming');
 
 insert into members (category, name, contact, address, lat, lng, url, status) values
