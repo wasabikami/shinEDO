@@ -98,6 +98,13 @@
   p{ margin:0 0 1.2em; }
   .lead{ font-size:1.08rem; color:var(--sumi); }
   .muted{ color:#5a5347; font-size:.95rem; }
+  .series-name{
+    font-family:var(--font-display);
+    color:var(--ai);
+    font-size:1.1rem;
+    letter-spacing:.03em;
+    margin:.4em 0 .8em;
+  }
 
   /* hairline divider, gold */
   .divider{
@@ -293,6 +300,11 @@
   .event-row .date{ font-family:var(--font-label); font-size:.82rem; color:var(--shu); }
   .event-row .guest{ font-family:var(--font-display); font-size:1.05rem; color:var(--ai); }
   .event-row .theme{ font-size:.85rem; color:#5a5347; }
+  .event-row .event-link{
+    display:inline-block; margin-top:.4em;
+    font-size:.8rem; color:var(--shu); text-decoration:none; border-bottom:1px solid currentColor;
+  }
+  .event-row .event-link:hover{ opacity:.75; }
   .event-row .tag{
     font-family:var(--font-label); font-size:.72rem;
     padding:.3em .7em; border-radius:999px;
@@ -392,6 +404,7 @@
     outline:2px solid var(--shu); outline-offset:1px;
   }
   .field textarea{ min-height:6rem; resize:vertical; }
+  .required-note{ font-size:.78rem; color:#8a8270; margin:-.3rem 0 0; }
   .submit-btn{
     font-family:var(--font-label);
     font-size:.9rem; letter-spacing:.08em;
@@ -609,6 +622,7 @@
   <div class="wrap reveal">
     <p class="eyebrow">お話会</p>
     <h2>実践と報告を、共に。</h2>
+    <p class="series-name">匠と語る、明日が変わるお話会</p>
     <p class="muted">メンバーが持ち寄る話を聞き、語り合う場です。</p>
     <div id="event-list" class="event-list">
       <p class="state-msg">読み込み中…</p>
@@ -667,7 +681,7 @@
 
     <form id="applyForm" class="apply-form is-hidden">
       <div class="field">
-        <label for="f-category">参加の形</label>
+        <label for="f-category">参加の形※</label>
         <select id="f-category" required>
           <option value="">選んでください</option>
           <option value="個人">個人</option>
@@ -677,29 +691,30 @@
         </select>
       </div>
       <div class="field">
-        <label for="f-name">お名前 / 団体名</label>
+        <label for="f-name">お名前 / 団体名※</label>
         <input id="f-name" type="text" required>
       </div>
       <div class="field">
-        <label for="f-email">メールアドレス</label>
+        <label for="f-email">メールアドレス※</label>
         <input id="f-email" type="email" required>
       </div>
       <div class="field">
-        <label for="f-phone">電話番号（任意）</label>
+        <label for="f-phone">電話番号</label>
         <input id="f-phone" type="tel">
       </div>
       <div class="field">
-        <label for="f-address">住所（任意）</label>
+        <label for="f-address">住所</label>
         <input id="f-address" type="text">
       </div>
       <div class="field">
-        <label for="f-url">サイト・SNSのURL（任意）</label>
+        <label for="f-url">サイト・SNSのURL</label>
         <input id="f-url" type="url" placeholder="https://...">
       </div>
       <div class="field">
-        <label for="f-message">一言（任意）</label>
+        <label for="f-message">一言</label>
         <textarea id="f-message"></textarea>
       </div>
+      <p class="required-note">※は必須です</p>
       <button type="submit" class="submit-btn">この指とーまれ、で送る</button>
       <p id="formMsg" class="form-msg" role="status"></p>
     </form>
@@ -750,16 +765,20 @@ async function loadEvents(){
   const withDone = data.map(ev => ({ ...ev, isDone: ev.status === 'done' }));
   const sorted = [...withDone.filter(ev => !ev.isDone), ...withDone.filter(ev => ev.isDone)];
 
-  el.innerHTML = sorted.map(ev => `
+  el.innerHTML = sorted.map(ev => {
+    const safeUrl = /^https?:\/\//i.test(ev.url || '') ? ev.url : null;
+    return `
     <div class="event-row">
       <div class="date">${ev.event_date ? formatDate(ev.event_date) : ''}</div>
       <div>
         <div class="guest">${escapeHtml(ev.guest_name || '')}</div>
         <div class="theme">${escapeHtml(ev.theme || '')}</div>
+        ${safeUrl ? `<a class="event-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">詳細を見る</a>` : ''}
       </div>
       <div class="tag ${ev.isDone ? 'tag--done' : ''}">${ev.isDone ? '終了' : '予定'}</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 /* ---------- members ---------- */

@@ -32,9 +32,13 @@ create table if not exists events (
   event_date date,              -- 開催日
   guest_name text,              -- ゲスト名（例：ビールの和ちゃん）
   theme text,                   -- テーマ・一言紹介
+  url text,                     -- 詳細ページのURL（あれば「詳細を見る」リンクを表示）
   note text,                    -- 補足メモ（サイトには非表示）
   status text not null default 'upcoming'   -- upcoming（予定） / done（終了）
 );
+
+-- 既存のテーブルに url がまだ無い場合はこちらを実行
+-- alter table events add column if not exists url text;
 
 -- 管理者テーブル：ログインして承認作業ができる人（Supabase Authのユーザーと1対1）
 create table if not exists admins (
@@ -94,11 +98,15 @@ create policy "admins: self read"
 -- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）
 -- ------------------------------------------------------------
-insert into events (event_date, guest_name, theme, status) values
-  ('2026-06-15', '克くん', '前回のお話会', 'done'),
-  ('2026-08-24', 'ビールの和ちゃん', '今回のお話会', 'upcoming'),
-  ('2026-09-21', '空手と歌手', '次回のお話会', 'upcoming'),
-  ('2026-12-14', 'だるまさんの草履', '12月のお話会', 'upcoming');
+insert into events (event_date, guest_name, theme, url, status) values
+  ('2026-05-18', '梅ちゃん＆遠山克彦さん', '座談会',
+    'https://satoyama3.my.canva.site/talk3', 'done'),
+  ('2026-09-28', 'MIROC BEER 知ちゃん(岩城知明)×和咲美 梅ちゃん', '座談会',
+    'https://satoyama3.my.canva.site/talk44', 'upcoming'),
+  ('2026-10-26', '空手の達人であり歌手さん', 'お話会',
+    'https://satoyama3.my.canva.site/talk5', 'upcoming'),
+  ('2026-12-14', '達磨草履工房', '座談会（12/14(月)〜12/15(火)・12月のお話会）',
+    'https://satoyama3.my.canva.site/talk6', 'upcoming');
 
 insert into members (category, name, contact, address, lat, lng, url, status) values
   ('個人', '超人', null, null, null, null, null, 'approved'),
