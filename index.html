@@ -305,6 +305,14 @@
     font-size:.8rem; color:var(--shu); text-decoration:none; border-bottom:1px solid currentColor;
   }
   .event-row .event-link:hover{ opacity:.75; }
+  .event-group-divider{
+    display:flex; align-items:center; gap:.9em;
+    margin:1.8rem 0 .2rem;
+    color:#8a8270; font-size:.75rem; letter-spacing:.15em;
+  }
+  .event-group-divider::before, .event-group-divider::after{
+    content:''; flex:1; height:1px; background:rgba(31,58,95,.25);
+  }
   .event-row .tag{
     font-family:var(--font-label); font-size:.72rem;
     padding:.3em .7em; border-radius:999px;
@@ -764,10 +772,17 @@ async function loadEvents(){
 
   const withDone = data.map(ev => ({ ...ev, isDone: ev.status === 'done' }));
   const sorted = [...withDone.filter(ev => !ev.isDone), ...withDone.filter(ev => ev.isDone)];
+  const hasBothGroups = sorted.some(ev => !ev.isDone) && sorted.some(ev => ev.isDone);
+  let dividerAdded = false;
 
   el.innerHTML = sorted.map(ev => {
     const safeUrl = /^https?:\/\//i.test(ev.url || '') ? ev.url : null;
-    return `
+    let divider = '';
+    if (hasBothGroups && ev.isDone && !dividerAdded){
+      divider = '<div class="event-group-divider"><span>終了</span></div>';
+      dividerAdded = true;
+    }
+    return divider + `
     <div class="event-row">
       <div class="date">${ev.event_date ? formatDate(ev.event_date) : ''}</div>
       <div>
