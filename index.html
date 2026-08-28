@@ -787,7 +787,7 @@ async function loadEvents(){
       <div class="date">${ev.event_date ? formatDate(ev.event_date) : ''}</div>
       <div>
         <div class="guest">${escapeHtml(ev.guest_name || '')}</div>
-        <div class="theme">${escapeHtml(ev.theme || '')}</div>
+        ${ev.theme ? `<div class="theme">${escapeHtml(ev.theme)}</div>` : ''}
         ${safeUrl ? `<a class="event-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">詳細を見る</a>` : ''}
       </div>
       <div class="tag ${ev.isDone ? 'tag--done' : ''}">${ev.isDone ? '終了' : '予定'}</div>
