@@ -409,6 +409,34 @@
   .form-msg.ok{ color:#3d6b3d; }
   .form-msg.err{ color:var(--shu); }
 
+  /* ============ OUEN-APP intro ============ */
+  .fee-note{
+    display:inline-block;
+    margin:1.4em 0 1.8em;
+    padding:.7em 1.3em;
+    border:1px solid rgba(217,179,108,.5);
+    border-radius:2px;
+    font-family:var(--font-label);
+    font-size:.9rem;
+    letter-spacing:.03em;
+    color:#D9B36C;
+  }
+  .cta-row{ display:flex; flex-wrap:wrap; gap:1rem; margin-top:1.6rem; }
+  .cta-btn{
+    display:inline-block;
+    font-family:var(--font-label);
+    font-size:.9rem; letter-spacing:.05em;
+    text-decoration:none;
+    padding:.9em 1.6em;
+    border-radius:2px;
+    border:1px solid var(--kinari);
+    color:var(--kinari);
+    transition:background .2s ease, color .2s ease;
+  }
+  .cta-btn.primary{ background:var(--kinari); color:var(--ai-deep); }
+  .cta-btn.primary:hover{ background:#D9B36C; border-color:#D9B36C; }
+  .cta-btn:not(.primary):hover{ background:rgba(242,236,217,.12); }
+
   /* ============ Footer ============ */
   footer{
     padding:3.5rem 0 2.5rem;
@@ -481,6 +509,7 @@
     <a class="brand" href="#top">shinEDO PJ</a>
     <a href="#events">お話会</a>
     <a href="#members">仲間</a>
+    <a href="#ouen-app">OUEN-APP</a>
     <a href="#apply">参加する</a>
   </nav>
 </header>
@@ -598,6 +627,22 @@
   </div>
 </section>
 
+<!-- ============ OUEN-APP 紹介 ============ -->
+<section class="section--dark" id="ouen-app">
+  <div class="wrap reveal">
+    <p class="eyebrow">支え合いを、かたちに</p>
+    <h2>実際に支え合うなら、<br>OUEN-APPへ。</h2>
+    <p style="max-width:36em;">OUEN-APPは、メンバー同士がお金やモノ・サービスを送り合い、支え合うための専用アプリです。このサイトの「参加している仲間」は紹介・掲載のための一覧ですが、実際のやり取りはOUEN-APP上で行います。</p>
+
+    <p class="fee-note">新EDOの仲間になるには、月額500円かかります</p>
+
+    <div class="cta-row">
+      <a class="cta-btn primary" href="https://ouen.vercel.app/" target="_blank" rel="noopener noreferrer">OUEN-APPを開く</a>
+      <a class="cta-btn" href="https://claude.ai/code/artifact/b26fc283-387f-4f5d-85af-853d8bb8e5cd" target="_blank" rel="noopener noreferrer">使い方ガイドを見る</a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 応募フォーム ============ -->
 <section id="apply">
   <div class="wrap reveal">
@@ -636,8 +681,12 @@
         <input id="f-name" type="text" required>
       </div>
       <div class="field">
-        <label for="f-contact">連絡先（メールなど）</label>
-        <input id="f-contact" type="text" required>
+        <label for="f-email">メールアドレス</label>
+        <input id="f-email" type="email" required>
+      </div>
+      <div class="field">
+        <label for="f-phone">電話番号（任意）</label>
+        <input id="f-phone" type="tel">
       </div>
       <div class="field">
         <label for="f-address">住所（任意）</label>
@@ -788,10 +837,12 @@ hankoBtn.addEventListener('click', () => {
 applyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
   const payload = {
     category: document.getElementById('f-category').value,
     name: document.getElementById('f-name').value.trim(),
-    contact: document.getElementById('f-contact').value.trim(),
+    contact: [email, phone].filter(Boolean).join(' / '),
     address: document.getElementById('f-address').value.trim() || null,
     url: document.getElementById('f-url').value.trim() || null,
     message: document.getElementById('f-message').value.trim(),
