@@ -105,7 +105,7 @@ insert into events (event_date, guest_name, theme, url, status) values
     'https://satoyama3.my.canva.site/talk44', 'upcoming'),
   ('2026-10-26', '空手の達人であり歌手さんと和咲美 梅ちゃんの座談会', null,
     'https://satoyama3.my.canva.site/talk5', 'upcoming'),
-  ('2026-12-14', '達磨草履工房さんと和咲美でのリトリート（12/14(月)・12/15(火)）', null,
+  ('2026-12-14', '達磨草履工房さんと和咲美でのリトリート', '（12/14(月)・12/15(火)）',
     'https://satoyama3.my.canva.site/talk6', 'upcoming');
 
 insert into members (category, name, contact, address, lat, lng, url, status) values
