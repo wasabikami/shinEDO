@@ -133,6 +133,19 @@ function escapeHtml(str){
   return String(str ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
 }
 
+async function geocodeAddress(address){
+  try {
+    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(address));
+    if (!res.ok) return null;
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const [lng, lat] = results[0].geometry.coordinates;
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
 async function init(){
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) showAdmin(session);
@@ -229,7 +242,14 @@ async function loadMembers(){
       const action = btn.dataset.action;
       btn.disabled = true;
       if (action === 'approve'){
-        await supabaseClient.from('members').update({ status: 'approved' }).eq('id', id);
+        const update = { status: 'approved' };
+        const member = data.find(m => m.id === id);
+        if (member && member.address && (member.lat == null || member.lng == null)){
+          btn.textContent = '座標取得中…';
+          const geo = await geocodeAddress(member.address);
+          if (geo){ update.lat = geo.lat; update.lng = geo.lng; }
+        }
+        await supabaseClient.from('members').update(update).eq('id', id);
       } else if (action === 'unapprove'){
         await supabaseClient.from('members').update({ status: 'pending' }).eq('id', id);
       } else if (action === 'delete'){

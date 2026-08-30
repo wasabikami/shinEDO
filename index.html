@@ -647,7 +647,6 @@
 <section id="members">
   <div class="wrap reveal">
     <p class="eyebrow">参加している仲間</p>
-    <h2>いま、集まっている数。</h2>
     <div id="member-count" class="member-count">—<span class="unit">人・団体</span></div>
     <div id="member-tiles" class="member-tiles"></div>
     <div id="member-map"></div>
@@ -877,17 +876,34 @@ hankoBtn.addEventListener('click', () => {
   if (willShow) applyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
+/* ---------- address -> lat/lng (国土地理院 住所検索API) ---------- */
+async function geocodeAddress(address){
+  try {
+    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(address));
+    if (!res.ok) return null;
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const [lng, lat] = results[0].geometry.coordinates;
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- form submit ---------- */
 applyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
   const email = document.getElementById('f-email').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
+  const address = document.getElementById('f-address').value.trim() || null;
   const payload = {
     category: document.getElementById('f-category').value,
     name: document.getElementById('f-name').value.trim(),
     contact: [email, phone].filter(Boolean).join(' / '),
-    address: document.getElementById('f-address').value.trim() || null,
+    address,
+    lat: null,
+    lng: null,
     url: document.getElementById('f-url').value.trim() || null,
     message: document.getElementById('f-message').value.trim(),
     status: 'pending'
@@ -901,6 +917,11 @@ applyForm.addEventListener('submit', async (e) => {
 
   msgEl.textContent = '送っています…';
   msgEl.className = 'form-msg';
+
+  if (address){
+    const geo = await geocodeAddress(address);
+    if (geo){ payload.lat = geo.lat; payload.lng = geo.lng; }
+  }
 
   const { error } = await supabaseClient.from('members').insert(payload);
   if (error){
