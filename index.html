@@ -380,7 +380,7 @@
   .leaflet-popup-content a.popup-name{ text-decoration:none; }
   .leaflet-popup-content a.popup-name:hover{ text-decoration:underline; }
   .leaflet-popup-content .popup-address{ font-size:.82em; color:#5a5347; }
-  .general-pin-icon{ background:none; border:none; }
+  .pin-icon{ background:none; border:none; }
 
   /* ============ Signature element: hanko stamp CTA ============ */
   .hanko-wrap{
@@ -930,16 +930,22 @@ function renderMemberMap(members){
     return;
   }
 
-  const generalPinIcon = L.divIcon({
-    className: 'general-pin-icon',
-    html: `<svg width="20" height="32" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="#FFC93C" stroke="#8A6200" stroke-width="1.8"/>
-      <circle cx="12" cy="12" r="4.2" fill="#8A6200"/>
-    </svg>`,
-    iconSize: [20, 32],
-    iconAnchor: [10, 32],
-    popupAnchor: [0, -30]
-  });
+  function pinIcon(fillColor, strokeColor, baseW, baseH, scale){
+    const w = baseW * scale, h = baseH * scale;
+    return L.divIcon({
+      className: 'pin-icon',
+      html: `<svg width="${w}" height="${h}" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="${fillColor}" stroke="${strokeColor}" stroke-width="1.8"/>
+        <circle cx="12" cy="12" r="4.2" fill="${strokeColor}"/>
+      </svg>`,
+      iconSize: [w, h],
+      iconAnchor: [w / 2, h],
+      popupAnchor: [0, -h * 0.92]
+    });
+  }
+  function zoomScale(zoom){
+    return Math.max(0.5, Math.min(1.2, 0.5 + (zoom - 4) * 0.09));
+  }
 
   const map = L.map(mapEl, { scrollWheelZoom: true }).setView([pinned[0].lat, pinned[0].lng], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -947,7 +953,7 @@ function renderMemberMap(members){
     maxZoom: 18
   }).addTo(map);
 
-  const markers = pinned.map(m => {
+  const markerInfo = pinned.map(m => {
     const safeUrl = /^https?:\/\//i.test(m.url || '') ? m.url : null;
     const nameHtml = safeUrl
       ? `<a class="popup-name" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.name)}</a>`
@@ -956,11 +962,22 @@ function renderMemberMap(members){
       ${nameHtml}
       ${m.address ? `<br><span class="popup-address">${escapeHtml(m.address)}</span>` : ''}
     `;
-    const marker = m.member_type === 'artisan'
-      ? L.marker([m.lat, m.lng])
-      : L.marker([m.lat, m.lng], { icon: generalPinIcon });
-    return marker.addTo(map).bindPopup(popup);
+    const isArtisan = m.member_type === 'artisan';
+    const marker = L.marker([m.lat, m.lng]).addTo(map).bindPopup(popup);
+    return { marker, isArtisan };
   });
+  const markers = markerInfo.map(mi => mi.marker);
+
+  function applyIconScale(){
+    const scale = zoomScale(map.getZoom());
+    markerInfo.forEach(({ marker, isArtisan }) => {
+      marker.setIcon(isArtisan
+        ? pinIcon('#2A6EBB', '#12335E', 25, 41, scale)
+        : pinIcon('#FFC93C', '#8A6200', 20, 32, scale));
+    });
+  }
+  map.on('zoomend', applyIconScale);
+  applyIconScale();
 
   if (markers.length > 1){
     map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
