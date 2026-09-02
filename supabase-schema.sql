@@ -17,15 +17,19 @@ create table if not exists members (
   url text,                     -- お店・団体のサイトやSNSのURL（地図ポップアップに表示）
   message text,                 -- 一言メッセージ
   member_type text not null default 'general',  -- artisan（匠）/ general（一般）
+  email text,                   -- ログイン用メールアドレス（本人編集の紐付けに使用。contactとは別）
+  owner_id uuid references auth.users(id) on delete set null,  -- ログインしたご本人のアカウント
   status text not null default 'pending'   -- pending（未承認） / approved（公開）
 );
 
--- 既存のテーブルに address / lat / lng / url / member_type がまだ無い場合はこちらを実行
+-- 既存のテーブルに address / lat / lng / url / member_type / email / owner_id がまだ無い場合はこちらを実行
 -- alter table members add column if not exists address text;
 -- alter table members add column if not exists lat double precision;
 -- alter table members add column if not exists lng double precision;
 -- alter table members add column if not exists url text;
 -- alter table members add column if not exists member_type text not null default 'general';
+-- alter table members add column if not exists email text;
+-- alter table members add column if not exists owner_id uuid references auth.users(id) on delete set null;
 
 -- お話会テーブル：開催予定・実施履歴を管理する
 create table if not exists events (
@@ -184,6 +188,87 @@ $$;
 grant execute on function public.list_admins() to authenticated;
 grant execute on function public.grant_admin(text) to authenticated;
 grant execute on function public.revoke_admin(text) to authenticated;
+
+-- ------------------------------------------------------------
+-- 会員本人によるログイン編集
+-- membersテーブルへの直接のselect/update権限は渡さず、
+-- 「自分のowner_idが一致する行だけ」を扱う関数経由でのみ操作させる。
+-- ------------------------------------------------------------
+
+-- ログイン直後に1回呼ぶ：自分のメールアドレスと一致する未紐付けの会員行があれば、
+-- 自分のアカウント（owner_id）として紐付ける。
+create or replace function public.claim_member()
+returns members
+language plpgsql security definer set search_path = public as $$
+declare
+  v_email text := (select email from auth.users where id = auth.uid());
+  v_id uuid;
+  v_row members;
+begin
+  if v_email is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select id into v_id from members where email = v_email and owner_id is null limit 1;
+  if v_id is not null then
+    update members set owner_id = auth.uid() where id = v_id;
+  end if;
+
+  select * into v_row from members where owner_id = auth.uid();
+  return v_row;
+end;
+$$;
+
+-- 自分に紐付いている会員情報を取得
+create or replace function public.get_my_member()
+returns members
+language plpgsql security definer set search_path = public as $$
+declare
+  v_row members;
+begin
+  select * into v_row from members where owner_id = auth.uid();
+  return v_row;
+end;
+$$;
+
+-- 自分の会員情報を編集（status・member_type・owner_idは変更不可）
+create or replace function public.update_my_member(
+  p_name text, p_category text, p_contact text, p_address text,
+  p_lat double precision, p_lng double precision, p_url text, p_message text
+)
+returns members
+language plpgsql security definer set search_path = public as $$
+declare
+  v_row members;
+begin
+  update members set
+    name = p_name,
+    category = p_category,
+    contact = p_contact,
+    address = p_address,
+    lat = p_lat,
+    lng = p_lng,
+    url = p_url,
+    message = p_message
+  where owner_id = auth.uid()
+  returning * into v_row;
+
+  if v_row.id is null then
+    raise exception 'not authorized or no linked member';
+  end if;
+  return v_row;
+end;
+$$;
+
+grant execute on function public.claim_member() to authenticated;
+grant execute on function public.get_my_member() to authenticated;
+grant execute on function public.update_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
+
+-- 既存会員のメールアドレスを、連絡先(contact)欄からベストエフォートで抽出しておく
+-- （新規応募からは専用のemail欄に保存されるので、これは移行時の一度きりの処置）
+update members
+set email = substring(contact from '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
+where email is null and contact is not null;
 
 -- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）

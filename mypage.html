@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイページ — shinEDO project</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ai: #1F3A5F;
+    --ai-deep: #12253C;
+    --kinari: #F2ECD9;
+    --sumi: #211D18;
+    --shu: #BB4430;
+    --kincha: #A9812D;
+    --font-display: 'Shippori Mincho', serif;
+    --font-label: 'Zen Kaku Gothic New', sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--kinari);
+    color:var(--sumi);
+    font-family:var(--font-label);
+    line-height:1.7;
+  }
+  .wrap{ max-width:36rem; margin:0 auto; padding:2.5rem 1.5rem 5rem; }
+  h1{
+    font-family:var(--font-display);
+    color:var(--ai);
+    font-size:1.5rem;
+    margin:0 0 .3em;
+  }
+  .muted{ color:#5a5347; font-size:.85rem; margin:0 0 2em; }
+
+  .field{ margin-bottom:1rem; }
+  .field label{ display:block; font-size:.8rem; margin-bottom:.4em; color:var(--ai); }
+  .field input, .field select, .field textarea{
+    width:100%; padding:.7em .9em; font-size:.95rem;
+    border:1px solid rgba(31,58,95,.3); border-radius:2px; background:#fff;
+    font-family:var(--font-label);
+  }
+  .field textarea{ min-height:5rem; resize:vertical; }
+
+  .password-row{ position:relative; }
+  .password-row input{ padding-right:2.6em; }
+  .password-toggle{
+    position:absolute; right:.4em; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; font-size:1.05rem;
+    padding:.3em; line-height:1; opacity:.6;
+  }
+  .password-toggle:hover{ opacity:1; }
+
+  .btn{
+    font-family:var(--font-label); font-size:.9rem; letter-spacing:.05em;
+    background:var(--ai); color:var(--kinari); border:none;
+    padding:.75em 1.4em; border-radius:2px; cursor:pointer;
+  }
+  .btn:hover{ background:var(--ai-deep); }
+  .btn.ghost{ background:transparent; color:var(--ai); border:1px solid rgba(31,58,95,.3); }
+  .msg{ font-size:.85rem; margin-top:.8em; min-height:1.2em; }
+  .msg.err{ color:var(--shu); }
+  .msg.ok{ color:#3d6b3d; }
+
+  .tabbtn{
+    background:none; border:none; color:var(--ai); text-decoration:underline;
+    cursor:pointer; font-size:.85rem; padding:0;
+  }
+
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+  #editView{ display:none; }
+  .state-msg{ font-size:.9rem; color:#5a5347; padding:1rem 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>shinEDO project — マイページ</h1>
+  <p class="muted">応募いただいた内容を、ご本人が編集できます。</p>
+
+  <div id="authView">
+    <form id="loginForm">
+      <div class="field">
+        <label for="authEmail">メールアドレス</label>
+        <input id="authEmail" type="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="authPassword">パスワード</label>
+        <div class="password-row">
+          <input id="authPassword" type="password" required autocomplete="current-password" minlength="6">
+          <button type="button" id="togglePassword" class="password-toggle" aria-label="パスワードを表示">👁</button>
+        </div>
+      </div>
+      <button type="submit" id="authSubmitBtn" class="btn">ログイン</button>
+      <p id="authMsg" class="msg" role="status"></p>
+    </form>
+    <p class="muted" style="margin-top:1.2rem;">
+      <span id="authModeHint">初めての方は</span>
+      <button type="button" id="authModeToggle" class="tabbtn">新規登録はこちら</button>
+    </p>
+    <p class="muted">
+      shinEDOのサイトは<a href="https://wasabikami.github.io/shinEDO/#top" target="_blank" rel="noopener noreferrer">こちら</a>からご覧いただけます。
+    </p>
+  </div>
+
+  <div id="editView">
+    <div class="topbar">
+      <span id="whoami" class="muted" style="margin:0;"></span>
+      <button id="logoutBtn" class="btn ghost">ログアウト</button>
+    </div>
+    <div id="editBody">
+      <p class="state-msg">読み込み中…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lfzvxkyhbzptwnrqesbq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_caS_cQE_TjtzJRQKSul2RQ_KmNN2uR4';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const authView = document.getElementById('authView');
+const editView = document.getElementById('editView');
+const loginForm = document.getElementById('loginForm');
+const authMsg = document.getElementById('authMsg');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authModeToggle = document.getElementById('authModeToggle');
+const authModeHint = document.getElementById('authModeHint');
+const whoami = document.getElementById('whoami');
+const editBody = document.getElementById('editBody');
+
+let mode = 'login'; // or 'signup'
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+}
+
+async function geocodeAddress(address){
+  try {
+    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(address));
+    if (!res.ok) return null;
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const [lng, lat] = results[0].geometry.coordinates;
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
+document.getElementById('togglePassword').addEventListener('click', () => {
+  const pw = document.getElementById('authPassword');
+  const btn = document.getElementById('togglePassword');
+  const show = pw.type === 'password';
+  pw.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'パスワードを隠す' : 'パスワードを表示');
+});
+
+authModeToggle.addEventListener('click', () => {
+  mode = mode === 'login' ? 'signup' : 'login';
+  authSubmitBtn.textContent = mode === 'login' ? 'ログイン' : '新規登録';
+  authModeHint.textContent = mode === 'login' ? '初めての方は' : 'すでにアカウントをお持ちの方は';
+  authModeToggle.textContent = mode === 'login' ? '新規登録はこちら' : 'ログインはこちら';
+  authMsg.textContent = '';
+  authMsg.className = 'msg';
+});
+
+async function init(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) showEdit(session);
+  else showAuth();
+}
+
+function showAuth(){
+  authView.style.display = 'block';
+  editView.style.display = 'none';
+}
+
+async function showEdit(session){
+  authView.style.display = 'none';
+  editView.style.display = 'block';
+  whoami.textContent = session.user.email;
+  await loadMyMember();
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  authMsg.textContent = mode === 'login' ? 'ログイン中…' : '登録中…';
+  authMsg.className = 'msg';
+
+  if (mode === 'signup'){
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error){
+      authMsg.textContent = '登録できませんでした: ' + error.message;
+      authMsg.className = 'msg err';
+      return;
+    }
+    if (!data.session){
+      authMsg.textContent = '確認メールを送りました。メール内のリンクを開いてから、ログインしてください。';
+      authMsg.className = 'msg ok';
+      return;
+    }
+    authMsg.textContent = '';
+    await showEdit(data.session);
+  } else {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error){
+      authMsg.textContent = 'ログインできませんでした。メールアドレスとパスワードを確認してください。';
+      authMsg.className = 'msg err';
+      return;
+    }
+    authMsg.textContent = '';
+    await showEdit(data.session);
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  authMsg.textContent = '';
+  authMsg.className = 'msg';
+  showAuth();
+});
+
+async function loadMyMember(){
+  editBody.innerHTML = '<p class="state-msg">読み込み中…</p>';
+
+  let { data: member, error } = await supabaseClient.rpc('claim_member');
+  if (error){
+    editBody.innerHTML = `<p class="state-msg">読み込めませんでした。<br>${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!member){
+    editBody.innerHTML = `
+      <p class="state-msg">
+        このメールアドレスに一致する登録が見つかりませんでした。<br>
+        まだ応募がお済みでない場合は、先に<a href="https://wasabikami.github.io/shinEDO/#apply" target="_blank" rel="noopener noreferrer">応募フォーム</a>からご登録ください。<br>
+        すでに応募済みの場合は、応募時に入力したメールアドレスと同じものでログインしてください。
+      </p>`;
+    return;
+  }
+
+  editBody.innerHTML = `
+    <form id="editForm">
+      <div class="field">
+        <label for="m-status">状態</label>
+        <input type="text" value="${member.status === 'pending' ? '承認待ち' : '公開中'}" disabled>
+      </div>
+      <div class="field">
+        <label for="m-category">参加の形</label>
+        <select id="m-category">
+          ${['個人', '里・村', 'コミュニティ', '団体・会社・企業'].map(c =>
+            `<option value="${c}" ${member.category === c ? 'selected' : ''}>${c}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label for="m-name">お名前 / 団体名</label>
+        <input id="m-name" type="text" required value="${escapeHtml(member.name)}">
+      </div>
+      <div class="field">
+        <label for="m-contact">連絡先（メール・電話など）</label>
+        <input id="m-contact" type="text" value="${escapeHtml(member.contact ?? '')}">
+      </div>
+      <div class="field">
+        <label for="m-address">住所</label>
+        <input id="m-address" type="text" value="${escapeHtml(member.address ?? '')}">
+      </div>
+      <div class="field">
+        <label for="m-url">サイト・SNSのURL</label>
+        <input id="m-url" type="url" value="${escapeHtml(member.url ?? '')}">
+      </div>
+      <div class="field">
+        <label for="m-message">一言</label>
+        <textarea id="m-message">${escapeHtml(member.message ?? '')}</textarea>
+      </div>
+      <button type="submit" class="btn">保存する</button>
+      <p id="editMsg" class="msg" role="status"></p>
+    </form>
+  `;
+
+  document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const editMsg = document.getElementById('editMsg');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    editMsg.textContent = '保存しています…';
+    editMsg.className = 'msg';
+
+    const newAddress = document.getElementById('m-address').value.trim() || null;
+    let lat = member.lat;
+    let lng = member.lng;
+    if (newAddress && newAddress !== member.address){
+      submitBtn.textContent = '座標取得中…';
+      const geo = await geocodeAddress(newAddress);
+      if (geo){ lat = geo.lat; lng = geo.lng; }
+    } else if (!newAddress){
+      lat = null; lng = null;
+    }
+
+    const { error: saveError } = await supabaseClient.rpc('update_my_member', {
+      p_name: document.getElementById('m-name').value.trim(),
+      p_category: document.getElementById('m-category').value,
+      p_contact: document.getElementById('m-contact').value.trim() || null,
+      p_address: newAddress,
+      p_lat: lat,
+      p_lng: lng,
+      p_url: document.getElementById('m-url').value.trim() || null,
+      p_message: document.getElementById('m-message').value.trim() || null
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '保存する';
+    if (saveError){
+      editMsg.textContent = '保存に失敗しました: ' + saveError.message;
+      editMsg.className = 'msg err';
+      return;
+    }
+    editMsg.textContent = '保存しました。';
+    editMsg.className = 'msg ok';
+    await loadMyMember();
+  });
+}
+
+init();
+</script>
+</body>
+</html>

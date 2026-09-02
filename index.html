@@ -564,6 +564,7 @@
     <a href="#members">仲間</a>
     <a href="#ouen-app">OUEN-APP</a>
     <a href="#apply">参加する</a>
+    <a href="mypage.html" target="_blank" rel="noopener noreferrer">マイページ</a>
     <a id="admin-link" href="admin.html" target="_blank" rel="noopener noreferrer" hidden>管理者ページへ</a>
   </nav>
 </header>
@@ -1001,6 +1002,7 @@ applyForm.addEventListener('submit', async (e) => {
     category: document.getElementById('f-category').value,
     name: document.getElementById('f-name').value.trim(),
     contact: [email, phone].filter(Boolean).join(' / '),
+    email,
     address,
     lat: null,
     lng: null,
