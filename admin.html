@@ -384,6 +384,12 @@ async function loadMembers(){
         <div>${escapeHtml(m.name)}</div>
         <div class="cell-small">${escapeHtml(m.category)}</div>
       </td>
+      <td>
+        <select data-action="type">
+          <option value="artisan" ${m.member_type === 'artisan' ? 'selected' : ''}>匠</option>
+          <option value="general" ${m.member_type !== 'artisan' ? 'selected' : ''}>一般</option>
+        </select>
+      </td>
       <td class="cell-small">
         ${m.contact ? escapeHtml(m.contact) + '<br>' : ''}
         ${m.address ? escapeHtml(m.address) + '<br>' : ''}
@@ -402,7 +408,7 @@ async function loadMembers(){
   tableWrap.innerHTML = `
     <table>
       <thead>
-        <tr><th>状態</th><th>名前・区分</th><th>詳細</th><th>操作</th></tr>
+        <tr><th>状態</th><th>名前・区分</th><th>匠/一般</th><th>詳細</th><th>操作</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -429,6 +435,15 @@ async function loadMembers(){
         await supabaseClient.from('members').delete().eq('id', id);
       }
       await loadMembers();
+    });
+  });
+
+  tableWrap.querySelectorAll('select[data-action="type"]').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const id = sel.closest('tr').dataset.id;
+      sel.disabled = true;
+      await supabaseClient.from('members').update({ member_type: sel.value }).eq('id', id);
+      sel.disabled = false;
     });
   });
 }

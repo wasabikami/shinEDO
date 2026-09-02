@@ -16,14 +16,16 @@ create table if not exists members (
   lng double precision,         -- 経度（地図に表示する場合に設定）
   url text,                     -- お店・団体のサイトやSNSのURL（地図ポップアップに表示）
   message text,                 -- 一言メッセージ
+  member_type text not null default 'general',  -- artisan（匠）/ general（一般）
   status text not null default 'pending'   -- pending（未承認） / approved（公開）
 );
 
--- 既存のテーブルに address / lat / lng / url がまだ無い場合はこちらを実行
+-- 既存のテーブルに address / lat / lng / url / member_type がまだ無い場合はこちらを実行
 -- alter table members add column if not exists address text;
 -- alter table members add column if not exists lat double precision;
 -- alter table members add column if not exists lng double precision;
 -- alter table members add column if not exists url text;
+-- alter table members add column if not exists member_type text not null default 'general';
 
 -- お話会テーブル：開催予定・実施履歴を管理する
 create table if not exists events (
@@ -196,20 +198,20 @@ insert into events (event_date, guest_name, theme, detail, url, status) values
   ('2026-12-14', '達磨草履工房さんと和咲美でのリトリート', '（12/14(月)・12/15(火)）', null,
     'https://satoyama3.my.canva.site/talk6', 'upcoming');
 
-insert into members (category, name, contact, address, lat, lng, url, status) values
-  ('個人', '超人', null, null, null, null, null, 'approved'),
+insert into members (category, name, contact, address, lat, lng, url, member_type, status) values
+  ('個人', '超人', null, null, null, null, null, 'general', 'approved'),
   ('団体・会社・企業', '達磨草履工房', null,
     '香川県仲多度郡まんのう町勝浦892番地', 34.0880579, 133.9916719,
-    'https://www.instagram.com/dharmakoubou/?hl=ja', 'approved'),
+    'https://www.instagram.com/dharmakoubou/?hl=ja', 'artisan', 'approved'),
   ('団体・会社・企業', 'MIROCビール', 'info@miroc-beer.com / 0877-43-7067',
     '香川県丸亀市北平山町2-5-15', 34.2888128, 133.7982421,
-    'https://www.miroc-beer.com/', 'approved'),
+    'https://www.miroc-beer.com/', 'artisan', 'approved'),
   ('団体・会社・企業', '愛菜ファーム Sin', null,
     '香川県丸亀市飯山町真時555', 34.2582117, 133.8473823,
-    'https://www.facebook.com/aisaifarmsin/', 'approved'),
+    'https://www.facebook.com/aisaifarmsin/', 'artisan', 'approved'),
   ('団体・会社・企業', '和咲美', null,
     '岡山県美作市真加部1057-4', 35.0796259, 134.1870792,
-    'https://wasabi-mimasaka.com/', 'approved');
+    'https://wasabi-mimasaka.com/', 'artisan', 'approved');
 
 -- ------------------------------------------------------------
 -- 補足：lat/lng は町域レベルの目安座標です（番地までは正確ではありません）。

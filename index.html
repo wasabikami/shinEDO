@@ -885,7 +885,7 @@ async function loadMembers(){
   }
   const { data, count, error } = await supabaseClient
     .from('members')
-    .select('name, category, address, lat, lng, url', { count: 'exact' })
+    .select('name, category, address, lat, lng, url, member_type', { count: 'exact' })
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(24);
@@ -897,7 +897,13 @@ async function loadMembers(){
   }
 
   countEl.innerHTML = `${count ?? (data ? data.length : 0)}<span class="unit">人・団体</span>`;
-  tilesEl.innerHTML = (data || []).map(m => {
+
+  const sortedMembers = [...(data || [])].sort((a, b) => {
+    const aArtisan = a.member_type === 'artisan' ? 0 : 1;
+    const bArtisan = b.member_type === 'artisan' ? 0 : 1;
+    return aArtisan - bArtisan;
+  });
+  tilesEl.innerHTML = sortedMembers.map(m => {
     const safeUrl = /^https?:\/\//i.test(m.url || '') ? m.url : null;
     return safeUrl
       ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.name)}</a>`
@@ -931,7 +937,13 @@ function renderMemberMap(members){
       ${nameHtml}
       ${m.address ? `<br><span class="popup-address">${escapeHtml(m.address)}</span>` : ''}
     `;
-    return L.marker([m.lat, m.lng]).addTo(map).bindPopup(popup);
+    const marker = m.member_type === 'artisan'
+      ? L.marker([m.lat, m.lng])
+      : L.circleMarker([m.lat, m.lng], {
+          radius: 6, color: '#E4C15A', weight: 1.5,
+          fillColor: '#F7E3A1', fillOpacity: 0.9
+        });
+    return marker.addTo(map).bindPopup(popup);
   });
 
   if (markers.length > 1){
