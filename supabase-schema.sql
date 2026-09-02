@@ -197,8 +197,14 @@ grant execute on function public.revoke_admin(text) to authenticated;
 
 -- ログイン直後に1回呼ぶ：自分のメールアドレスと一致する未紐付けの会員行があれば、
 -- 自分のアカウント（owner_id）として紐付ける。
+-- 戻り値はjsonb（membersの行型のままだと、Postgresの仕様上「本当にNULL」を
+-- 返してもJSONへの変換時に「全項目がnullのオブジェクト」になってしまい、
+-- JS側で「見つからなかった」ことを正しく判定できないため）
+drop function if exists public.claim_member();
+drop function if exists public.get_my_member();
+
 create or replace function public.claim_member()
-returns members
+returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_email text := (select email from auth.users where id = auth.uid());
@@ -218,13 +224,13 @@ begin
   if not found then
     return null;
   end if;
-  return v_row;
+  return to_jsonb(v_row);
 end;
 $$;
 
 -- 自分に紐付いている会員情報を取得
 create or replace function public.get_my_member()
-returns members
+returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_row members;
@@ -233,7 +239,7 @@ begin
   if not found then
     return null;
   end if;
-  return v_row;
+  return to_jsonb(v_row);
 end;
 $$;
 
