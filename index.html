@@ -203,21 +203,29 @@
   /* ============ Questions — calligraphy scatter ============ */
   .question-field{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(11rem,1fr));
-    gap:1.1rem 1.4rem;
+    grid-template-columns:repeat(auto-fit, minmax(13rem,1fr));
+    gap:1.1rem;
     margin-top:2.2rem;
   }
   .question-field .q{
     font-family:var(--font-display);
-    font-size:1.28rem;
+    font-size:1.18rem;
     color:var(--ai);
     line-height:1.55;
-    position:relative;
-    padding-top:.9em;
+    padding:1.5rem 1.3rem 1.4rem;
+    background:#fff;
+    border:1px solid rgba(31,58,95,.12);
+    border-left:3px solid var(--shu);
+    border-radius:2px;
+    box-shadow:0 2px 10px rgba(33,29,24,.05);
+    transition:transform .2s ease, box-shadow .2s ease;
   }
-  .question-field .q::before{
-    content:"問";
-    position:absolute; top:0; left:0;
+  .question-field .q:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 18px rgba(33,29,24,.09);
+  }
+  .question-field .q-badge{
+    display:inline-block;
     font-family:var(--font-label);
     font-size:.62rem;
     letter-spacing:.15em;
@@ -225,6 +233,7 @@
     border:1px solid var(--shu);
     padding:.15em .4em;
     border-radius:1px;
+    margin-bottom:.7em;
   }
 
   /* ============ dark section (recruitment belief) ============ */
@@ -612,11 +621,11 @@
     <h2>豊かさとは何か。進歩とは。<br>幸せとは。美しさとは。日本らしさとは。</h2>
     <p class="lead">テレビやSNSの誰かの受け売りや、オウム返しではなく。もう一度、日本の歴史から学び、現代に活かす。</p>
     <div class="question-field">
-      <div class="q">豊かさとは<br>何か？</div>
-      <div class="q">進歩とは？</div>
-      <div class="q">幸せとは？</div>
-      <div class="q">美しさとは？</div>
-      <div class="q">日本らしさとは？</div>
+      <div class="q"><span class="q-badge">問</span>豊かさとは何か？</div>
+      <div class="q"><span class="q-badge">問</span>進歩とは？</div>
+      <div class="q"><span class="q-badge">問</span>幸せとは？</div>
+      <div class="q"><span class="q-badge">問</span>美しさとは？</div>
+      <div class="q"><span class="q-badge">問</span>日本らしさとは？</div>
     </div>
   </div>
 </section>
