@@ -48,6 +48,14 @@
     width:100%; padding:.7em .9em; font-size:.95rem;
     border:1px solid rgba(31,58,95,.3); border-radius:2px; background:#fff;
   }
+  .password-row{ position:relative; }
+  .password-row input{ padding-right:2.6em; }
+  .password-toggle{
+    position:absolute; right:.4em; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; font-size:1.05rem;
+    padding:.3em; line-height:1; opacity:.6;
+  }
+  .password-toggle:hover{ opacity:1; }
   .btn{
     font-family:var(--font-label); font-size:.9rem; letter-spacing:.05em;
     background:var(--ai); color:var(--kinari); border:none;
@@ -132,13 +140,17 @@
       </div>
       <div class="field">
         <label for="loginPassword">パスワード</label>
-        <input id="loginPassword" type="password" required autocomplete="current-password">
+        <div class="password-row">
+          <input id="loginPassword" type="password" required autocomplete="current-password">
+          <button type="button" id="togglePassword" class="password-toggle" aria-label="パスワードを表示">👁</button>
+        </div>
       </div>
       <button type="submit" class="btn">ログイン</button>
       <p id="loginMsg" class="msg" role="status"></p>
     </form>
     <p class="muted" style="margin-top:1.5rem;">
-      OUEN-APPのご利用は<a href="https://ouen.vercel.app/login" target="_blank" rel="noopener noreferrer">こちらのユーザーログイン</a>からどうぞ。
+      OUEN-APPのご利用は<a href="https://ouen.vercel.app/login" target="_blank" rel="noopener noreferrer">こちらのユーザーログイン</a>からどうぞ。<br>
+      shinEDOのサイトは<a href="https://wasabikami.github.io/shinEDO/#top" target="_blank" rel="noopener noreferrer">こちら</a>からご覧いただけます。
     </p>
   </div>
 
@@ -308,6 +320,14 @@ tabEvents.addEventListener('click', () => {
 tabAdmins.addEventListener('click', () => {
   showTab('admins');
   if (!adminsLoaded){ adminsLoaded = true; loadAdmins(); }
+});
+
+document.getElementById('togglePassword').addEventListener('click', () => {
+  const pw = document.getElementById('loginPassword');
+  const btn = document.getElementById('togglePassword');
+  const show = pw.type === 'password';
+  pw.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'パスワードを隠す' : 'パスワードを表示');
 });
 
 loginForm.addEventListener('submit', async (e) => {
