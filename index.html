@@ -557,7 +557,7 @@
     <a href="#members">仲間</a>
     <a href="#ouen-app">OUEN-APP</a>
     <a href="#apply">参加する</a>
-    <a href="admin.html" target="_blank" rel="noopener noreferrer">管理者ページへ</a>
+    <a id="admin-link" href="admin.html" target="_blank" rel="noopener noreferrer" hidden>管理者ページへ</a>
   </nav>
 </header>
 
@@ -778,6 +778,20 @@ let supabaseClient = null;
 if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
+
+/* ---------- show admin link only for logged-in admins ---------- */
+async function checkAdminLink(){
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) return;
+  const { data: adminRow } = await supabaseClient
+    .from('admins')
+    .select('user_id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+  if (adminRow) document.getElementById('admin-link').hidden = false;
+}
+checkAdminLink();
 
 /* ---------- scroll reveal ---------- */
 const revealEls = document.querySelectorAll('.reveal');
