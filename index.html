@@ -469,6 +469,7 @@
   .benefit-list li::before{
     content:'○'; position:absolute; left:0; color:#D9B36C; font-size:.75em; top:.3em;
   }
+  .benefit-list li.no-marker::before{ content:none; }
   .cta-row{ display:flex; flex-wrap:wrap; gap:1rem; margin-top:1.6rem; }
   .cta-btn{
     display:inline-block;
@@ -695,8 +696,8 @@
     <ul class="benefit-list">
       <li>月に一度のzoom会(無料)</li>
       <li>春夏秋冬のオフ会(会員価格)</li>
-      <li>などご参加いただけます♡</li>
-      <li>OUEN-APPに参加されるとMAPにも表示されます♡</li>
+      <li class="no-marker">などご参加いただけます♡</li>
+      <li>OUEN-APPに参加されると仲間MAPに表示されます♡</li>
     </ul>
 
     <div class="cta-row">
