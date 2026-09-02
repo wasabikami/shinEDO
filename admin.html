@@ -259,8 +259,9 @@ function escapeHtml(str){
 }
 
 async function geocodeAddress(address){
+  const query = address.replace(/^〒?\s*\d{3}-?\d{4}\s*/, '').trim();
   try {
-    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(address));
+    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(query));
     if (!res.ok) return null;
     const results = await res.json();
     if (!Array.isArray(results) || results.length === 0) return null;
