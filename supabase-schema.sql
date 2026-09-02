@@ -91,6 +91,12 @@ create policy "events: public read"
   to anon
   using ( true );
 
+-- お話会：ログイン中の管理者も閲覧できる（public readはanon限定のため別途必要）
+create policy "events: admin read"
+  on events for select
+  to authenticated
+  using ( true );
+
 -- お話会：管理者は追加・編集・削除ができる
 create policy "events: admin insert"
   on events for insert
