@@ -66,10 +66,10 @@ create policy "members: public insert"
   to anon
   with check ( status = 'pending' );
 
--- 会員：承認済み（approved）のものだけ、誰でも閲覧できる
+-- 会員：承認済み（approved）のものだけ、誰でも閲覧できる（ログイン中の人も含む）
 create policy "members: public read approved"
   on members for select
-  to anon
+  to public
   using ( status = 'approved' );
 
 -- 会員：管理者はpending含む全件を閲覧できる
@@ -91,10 +91,10 @@ create policy "members: admin delete"
   to authenticated
   using ( exists (select 1 from admins where user_id = auth.uid()) );
 
--- お話会：誰でも閲覧できる
+-- お話会：誰でも閲覧できる（ログイン中の人も含む）
 create policy "events: public read"
   on events for select
-  to anon
+  to public
   using ( true );
 
 -- お話会：ログイン中の管理者も閲覧できる（public readはanon限定のため別途必要）
