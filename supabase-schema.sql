@@ -135,7 +135,7 @@ create or replace function public.list_admins()
 returns table (user_id uuid, email text)
 language plpgsql security definer set search_path = public as $$
 begin
-  if not exists (select 1 from admins where user_id = auth.uid()) then
+  if not exists (select 1 from admins ad where ad.user_id = auth.uid()) then
     raise exception 'not authorized';
   end if;
 
@@ -215,6 +215,9 @@ begin
   end if;
 
   select * into v_row from members where owner_id = auth.uid();
+  if not found then
+    return null;
+  end if;
   return v_row;
 end;
 $$;
@@ -227,6 +230,9 @@ declare
   v_row members;
 begin
   select * into v_row from members where owner_id = auth.uid();
+  if not found then
+    return null;
+  end if;
   return v_row;
 end;
 $$;
