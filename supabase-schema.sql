@@ -60,10 +60,10 @@ alter table members enable row level security;
 alter table events  enable row level security;
 alter table admins  enable row level security;
 
--- 会員：誰でも「応募」として新規登録できる（承認待ちのみ）
+-- 会員：誰でも「応募」として新規登録できる（承認待ちのみ、ログイン中の人も含む）
 create policy "members: public insert"
   on members for insert
-  to anon
+  to public
   with check ( status = 'pending' );
 
 -- 会員：承認済み（approved）のものだけ、誰でも閲覧できる（ログイン中の人も含む）
