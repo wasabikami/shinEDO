@@ -443,6 +443,15 @@
     outline:2px solid var(--shu); outline-offset:1px;
   }
   .field textarea{ min-height:6rem; resize:vertical; }
+  .field-note{ font-size:.78rem; color:#8a8270; margin:.4em 0 0; }
+  .password-row{ position:relative; }
+  .password-row input{ padding-right:2.6em; }
+  .password-toggle{
+    position:absolute; right:.4em; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; font-size:1.05rem;
+    padding:.3em; line-height:1; opacity:.6;
+  }
+  .password-toggle:hover{ opacity:1; }
   .required-note{ font-size:.78rem; color:#8a8270; margin:-.3rem 0 0; }
   .submit-btn{
     font-family:var(--font-label);
@@ -765,6 +774,14 @@
         <input id="f-email" type="email" required>
       </div>
       <div class="field">
+        <label for="f-password">パスワード※</label>
+        <div class="password-row">
+          <input id="f-password" type="password" required minlength="6" autocomplete="new-password">
+          <button type="button" id="toggleApplyPassword" class="password-toggle" aria-label="パスワードを表示">👁</button>
+        </div>
+        <p class="field-note">マイページへのログインに使います</p>
+      </div>
+      <div class="field">
         <label for="f-phone">電話番号</label>
         <input id="f-phone" type="tel">
       </div>
@@ -1020,24 +1037,31 @@ async function geocodeAddress(address){
   }
 }
 
+document.getElementById('toggleApplyPassword').addEventListener('click', () => {
+  const pw = document.getElementById('f-password');
+  const btn = document.getElementById('toggleApplyPassword');
+  const show = pw.type === 'password';
+  pw.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'パスワードを隠す' : 'パスワードを表示');
+});
+
 /* ---------- form submit ---------- */
 applyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
   const email = document.getElementById('f-email').value.trim();
+  const password = document.getElementById('f-password').value;
   const phone = document.getElementById('f-phone').value.trim();
   const address = document.getElementById('f-address').value.trim() || null;
-  const payload = {
-    category: document.getElementById('f-category').value,
-    name: document.getElementById('f-name').value.trim(),
-    contact: [email, phone].filter(Boolean).join(' / '),
-    email,
-    address,
-    lat: null,
-    lng: null,
-    url: document.getElementById('f-url').value.trim() || null,
-    message: document.getElementById('f-message').value.trim(),
-    status: 'pending'
+  const args = {
+    p_category: document.getElementById('f-category').value,
+    p_name: document.getElementById('f-name').value.trim(),
+    p_contact: [email, phone].filter(Boolean).join(' / '),
+    p_address: address,
+    p_lat: null,
+    p_lng: null,
+    p_url: document.getElementById('f-url').value.trim() || null,
+    p_message: document.getElementById('f-message').value.trim()
   };
 
   if (!supabaseClient){
@@ -1049,18 +1073,34 @@ applyForm.addEventListener('submit', async (e) => {
   msgEl.textContent = '送っています…';
   msgEl.className = 'form-msg';
 
-  if (address){
-    const geo = await geocodeAddress(address);
-    if (geo){ payload.lat = geo.lat; payload.lng = geo.lng; }
+  const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+  if (signUpError){
+    if (signUpError.message.includes('already registered')){
+      msgEl.textContent = 'このメールアドレスはすでに登録されています。マイページからログインしてください。';
+    } else {
+      msgEl.textContent = '送信に失敗しました: ' + signUpError.message;
+    }
+    msgEl.className = 'form-msg err';
+    return;
+  }
+  if (!signUpData.session){
+    msgEl.textContent = 'アカウントは作成されましたが、ログインできませんでした。時間をおいてマイページからログインしてください。';
+    msgEl.className = 'form-msg err';
+    return;
   }
 
-  const { error } = await supabaseClient.from('members').insert(payload);
+  if (address){
+    const geo = await geocodeAddress(address);
+    if (geo){ args.p_lat = geo.lat; args.p_lng = geo.lng; }
+  }
+
+  const { error } = await supabaseClient.rpc('create_my_member', args);
   if (error){
     msgEl.textContent = '送信に失敗しました。時間をおいて、もう一度お試しください。';
     msgEl.className = 'form-msg err';
     return;
   }
-  msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。';
+  msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。マイページからいつでも編集できます。';
   msgEl.className = 'form-msg ok';
   applyForm.reset();
 });

@@ -101,8 +101,11 @@
       <p id="authMsg" class="msg" role="status"></p>
     </form>
     <p class="muted" style="margin-top:1.2rem;">
-      <span id="authModeHint">初めての方は</span>
-      <button type="button" id="authModeToggle" class="tabbtn">新規登録はこちら</button>
+      初めての方は、<a href="https://wasabikami.github.io/shinEDO/#apply" target="_blank" rel="noopener noreferrer">応募フォーム</a>から参加してください(アカウントも一緒に作られます)。
+    </p>
+    <p class="muted">
+      <span id="authModeHint">応募がまだアカウントに紐づいていない場合は</span>
+      <button type="button" id="authModeToggle" class="tabbtn">こちらで新規登録</button>
     </p>
     <p class="muted">
       shinEDOのサイトは<a href="https://wasabikami.github.io/shinEDO/#top" target="_blank" rel="noopener noreferrer">こちら</a>からご覧いただけます。
@@ -169,8 +172,8 @@ document.getElementById('togglePassword').addEventListener('click', () => {
 authModeToggle.addEventListener('click', () => {
   mode = mode === 'login' ? 'signup' : 'login';
   authSubmitBtn.textContent = mode === 'login' ? 'ログイン' : '新規登録';
-  authModeHint.textContent = mode === 'login' ? '初めての方は' : 'すでにアカウントをお持ちの方は';
-  authModeToggle.textContent = mode === 'login' ? '新規登録はこちら' : 'ログインはこちら';
+  authModeHint.textContent = mode === 'login' ? '応募がまだアカウントに紐づいていない場合は' : 'すでにアカウントをお持ちの方は';
+  authModeToggle.textContent = mode === 'login' ? 'こちらで新規登録' : 'ログインはこちら';
   authMsg.textContent = '';
   authMsg.className = 'msg';
 });

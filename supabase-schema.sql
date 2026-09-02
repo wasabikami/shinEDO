@@ -272,6 +272,35 @@ begin
 end;
 $$;
 
+-- 応募フォームから、アカウント作成と同時に会員データを作る（新しい応募専用の一体化フロー）
+create or replace function public.create_my_member(
+  p_category text, p_name text, p_contact text, p_address text,
+  p_lat double precision, p_lng double precision, p_url text, p_message text
+)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_email text := (select email from auth.users where id = auth.uid());
+  v_row members;
+begin
+  if v_email is null then
+    raise exception 'not authenticated';
+  end if;
+
+  if exists (select 1 from members where owner_id = auth.uid()) then
+    raise exception 'already applied';
+  end if;
+
+  insert into members (category, name, contact, address, lat, lng, url, message, email, owner_id, status)
+  values (p_category, p_name, p_contact, p_address, p_lat, p_lng, p_url, p_message, v_email, auth.uid(), 'pending')
+  returning * into v_row;
+
+  return to_jsonb(v_row);
+end;
+$$;
+
+grant execute on function public.create_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
+
 grant execute on function public.claim_member() to authenticated;
 grant execute on function public.get_my_member() to authenticated;
 grant execute on function public.update_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
