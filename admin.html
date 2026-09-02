@@ -452,6 +452,15 @@ async function loadMembers(){
           update[el.dataset.field] = el.value.trim() || null;
         });
         update.name = update.name || (data.find(m => m.id === id) || {}).name;
+
+        const member = data.find(m => m.id === id);
+        const addressChanged = update.address && update.address !== (member ? member.address : null);
+        if (addressChanged){
+          btn.textContent = '座標取得中…';
+          const geo = await geocodeAddress(update.address);
+          if (geo){ update.lat = geo.lat; update.lng = geo.lng; }
+        }
+
         const { error: saveError } = await supabaseClient.from('members').update(update).eq('id', id);
         if (saveError){ alert('保存に失敗しました: ' + saveError.message); btn.disabled = false; return; }
       }
