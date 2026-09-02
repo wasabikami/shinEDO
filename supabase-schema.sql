@@ -295,6 +295,11 @@ begin
   values (p_category, p_name, p_contact, p_address, p_lat, p_lng, p_url, p_message, v_email, auth.uid(), 'pending')
   returning * into v_row;
 
+  -- OUEN-APP側のプロフィールも先に作っておく（存在すればprofile-setup画面をスキップできる）
+  insert into public.profiles (id, name, message)
+  values (auth.uid(), p_name, coalesce(p_message, ''))
+  on conflict (id) do nothing;
+
   return to_jsonb(v_row);
 end;
 $$;
