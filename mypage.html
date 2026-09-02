@@ -263,16 +263,16 @@ async function loadMyMember(){
         </select>
       </div>
       <div class="field">
-        <label for="m-name">お名前 / 団体名</label>
+        <label for="m-name">お名前 / 団体名※</label>
         <input id="m-name" type="text" required value="${escapeHtml(member.name)}">
       </div>
       <div class="field">
-        <label for="m-contact">連絡先（メール・電話など）</label>
-        <input id="m-contact" type="text" value="${escapeHtml(member.contact ?? '')}">
+        <label for="m-contact">電話番号※</label>
+        <input id="m-contact" type="tel" required value="${escapeHtml(member.contact ?? '')}">
       </div>
       <div class="field">
-        <label for="m-address">住所</label>
-        <input id="m-address" type="text" value="${escapeHtml(member.address ?? '')}">
+        <label for="m-address">住所※</label>
+        <input id="m-address" type="text" required value="${escapeHtml(member.address ?? '')}">
       </div>
       <div class="field">
         <label for="m-url">サイト・SNSのURL</label>
@@ -282,6 +282,7 @@ async function loadMyMember(){
         <label for="m-message">一言</label>
         <textarea id="m-message">${escapeHtml(member.message ?? '')}</textarea>
       </div>
+      <p class="muted" style="margin:-.4rem 0 .8rem;">※は必須です</p>
       <button type="submit" class="btn">保存する</button>
       <p id="editMsg" class="msg" role="status"></p>
     </form>
