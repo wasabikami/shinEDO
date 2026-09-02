@@ -305,6 +305,17 @@
     font-size:.8rem; color:var(--shu); text-decoration:none; border-bottom:1px solid currentColor;
   }
   .event-row .event-link:hover{ opacity:.75; }
+  .event-detail{ margin-top:.5em; }
+  .event-detail summary{
+    display:inline-block; cursor:pointer;
+    font-size:.8rem; color:var(--shu); border-bottom:1px solid currentColor;
+  }
+  .event-detail summary:hover{ opacity:.75; }
+  .event-detail p{
+    margin:.6em 0 0; font-size:.9rem; color:var(--sumi);
+    max-width:34em; white-space:normal;
+  }
+  .event-detail .event-link{ margin-top:.5em; }
   .event-row.is-done{ opacity:.55; }
   .event-group-label, .event-group-divider{
     display:flex; align-items:center; gap:.9em;
@@ -798,6 +809,24 @@ async function loadEvents(){
 
   el.innerHTML = sorted.map(ev => {
     const safeUrl = /^https?:\/\//i.test(ev.url || '') ? ev.url : null;
+    const urlLink = safeUrl
+      ? `<a class="event-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">関連ページを見る</a>`
+      : '';
+    let detailHtml;
+    if (ev.detail){
+      const detailText = escapeHtml(ev.detail).replace(/\n/g, '<br>');
+      detailHtml = `
+        <details class="event-detail">
+          <summary>詳細を見る</summary>
+          <p>${detailText}</p>
+          ${urlLink}
+        </details>`;
+    } else if (safeUrl){
+      detailHtml = `<a class="event-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">詳細を見る</a>`;
+    } else {
+      detailHtml = '';
+    }
+
     let groupMark = '';
     if (hasUpcoming && !ev.isDone && !upcomingLabelAdded){
       groupMark = '<div class="event-group-label"><span>Coming Soon</span></div>';
@@ -812,7 +841,7 @@ async function loadEvents(){
       <div>
         <div class="guest">${escapeHtml(ev.guest_name || '')}</div>
         ${ev.theme ? `<div class="theme">${escapeHtml(ev.theme)}</div>` : ''}
-        ${safeUrl ? `<a class="event-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">詳細を見る</a>` : ''}
+        ${detailHtml}
       </div>
       <div class="tag ${ev.isDone ? 'tag--done' : 'tag--upcoming'}">${ev.isDone ? '終了' : '予定'}</div>
     </div>

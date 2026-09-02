@@ -83,6 +83,32 @@
   .row-actions button.reject{ background:var(--shu); color:var(--kinari); border-color:var(--shu); }
   .cell-small{ font-size:.8em; color:#5a5347; }
   .state-msg{ font-size:.85rem; color:#8a8270; padding:1rem 0; }
+
+  .tabs{ display:flex; gap:.5em; margin-bottom:1.5rem; }
+  .tabs button{
+    font-family:var(--font-label); font-size:.85rem; padding:.6em 1.2em;
+    border-radius:2px; cursor:pointer; border:1px solid rgba(31,58,95,.3);
+    background:#fff; color:var(--ai);
+  }
+  .tabs button.active{ background:var(--ai); color:var(--kinari); border-color:var(--ai); }
+
+  .event-form{
+    display:grid; gap:.8em; grid-template-columns:repeat(2, 1fr);
+    background:#fff; border:1px solid rgba(31,58,95,.14); padding:1.2rem; margin-bottom:2rem;
+  }
+  .event-form .full{ grid-column:1 / -1; }
+  .event-form label{ display:block; font-size:.75rem; color:var(--ai); margin-bottom:.3em; }
+  .event-form input, .event-form select, .event-form textarea{
+    width:100%; padding:.6em .7em; font-size:.88rem;
+    border:1px solid rgba(31,58,95,.3); border-radius:2px; background:#fff; font-family:var(--font-label);
+  }
+  .event-form textarea{ min-height:4rem; resize:vertical; }
+
+  .event-row-edit input, .event-row-edit select, .event-row-edit textarea{
+    width:100%; padding:.4em .5em; font-size:.82rem;
+    border:1px solid rgba(31,58,95,.25); border-radius:2px; font-family:var(--font-label);
+  }
+  .event-row-edit textarea{ min-height:3rem; resize:vertical; }
 </style>
 </head>
 <body>
@@ -111,8 +137,56 @@
       <span id="whoami" class="muted" style="margin:0;"></span>
       <button id="logoutBtn" class="btn ghost">ログアウト</button>
     </div>
-    <div id="memberTableWrap">
-      <p class="state-msg">読み込み中…</p>
+
+    <div class="tabs">
+      <button type="button" id="tabMembers" class="active">会員</button>
+      <button type="button" id="tabEvents">お話会</button>
+    </div>
+
+    <div id="membersPanel">
+      <div id="memberTableWrap">
+        <p class="state-msg">読み込み中…</p>
+      </div>
+    </div>
+
+    <div id="eventsPanel" style="display:none;">
+      <form id="eventForm" class="event-form">
+        <div>
+          <label for="ev-date">開催日</label>
+          <input id="ev-date" type="date" required>
+        </div>
+        <div>
+          <label for="ev-status">状態</label>
+          <select id="ev-status">
+            <option value="upcoming">予定</option>
+            <option value="done">終了</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="ev-guest">タイトル（ゲスト名・内容）</label>
+          <input id="ev-guest" type="text" required>
+        </div>
+        <div class="full">
+          <label for="ev-theme">補足（小さく表示・任意）</label>
+          <input id="ev-theme" type="text">
+        </div>
+        <div class="full">
+          <label for="ev-detail">詳細文章（サイト上に「詳細を見る」で表示・任意）</label>
+          <textarea id="ev-detail"></textarea>
+        </div>
+        <div class="full">
+          <label for="ev-url">関連ページURL（任意）</label>
+          <input id="ev-url" type="url" placeholder="https://...">
+        </div>
+        <div class="full">
+          <button type="submit" class="btn">お話会を追加</button>
+          <p id="eventFormMsg" class="msg" role="status"></p>
+        </div>
+      </form>
+
+      <div id="eventTableWrap">
+        <p class="state-msg">読み込み中…</p>
+      </div>
     </div>
   </div>
 </div>
@@ -163,6 +237,27 @@ async function showAdmin(session){
   whoami.textContent = session.user.email;
   await loadMembers();
 }
+
+const tabMembers = document.getElementById('tabMembers');
+const tabEvents = document.getElementById('tabEvents');
+const membersPanel = document.getElementById('membersPanel');
+const eventsPanel = document.getElementById('eventsPanel');
+let eventsLoaded = false;
+
+tabMembers.addEventListener('click', () => {
+  tabMembers.classList.add('active');
+  tabEvents.classList.remove('active');
+  membersPanel.style.display = 'block';
+  eventsPanel.style.display = 'none';
+});
+
+tabEvents.addEventListener('click', () => {
+  tabEvents.classList.add('active');
+  tabMembers.classList.remove('active');
+  eventsPanel.style.display = 'block';
+  membersPanel.style.display = 'none';
+  if (!eventsLoaded){ eventsLoaded = true; loadEvents(); }
+});
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -260,6 +355,108 @@ async function loadMembers(){
     });
   });
 }
+
+/* ---------- events ---------- */
+const eventTableWrap = document.getElementById('eventTableWrap');
+const eventForm = document.getElementById('eventForm');
+const eventFormMsg = document.getElementById('eventFormMsg');
+
+async function loadEvents(){
+  eventTableWrap.innerHTML = '<p class="state-msg">読み込み中…</p>';
+  const { data, error } = await supabaseClient
+    .from('events')
+    .select('*')
+    .order('event_date', { ascending: true });
+
+  if (error){
+    eventTableWrap.innerHTML = `<p class="state-msg">読み込めませんでした。<br>${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || data.length === 0){
+    eventTableWrap.innerHTML = '<p class="state-msg">お話会データがありません。</p>';
+    return;
+  }
+
+  const rows = data.map(ev => `
+    <tr class="event-row-edit" data-id="${ev.id}">
+      <td><input type="date" data-field="event_date" value="${ev.event_date ?? ''}"></td>
+      <td><select data-field="status">
+        <option value="upcoming" ${ev.status === 'upcoming' ? 'selected' : ''}>予定</option>
+        <option value="done" ${ev.status === 'done' ? 'selected' : ''}>終了</option>
+      </select></td>
+      <td>
+        <input type="text" data-field="guest_name" value="${escapeHtml(ev.guest_name ?? '')}" style="margin-bottom:.4em;">
+        <input type="text" data-field="theme" placeholder="補足（任意）" value="${escapeHtml(ev.theme ?? '')}">
+      </td>
+      <td>
+        <textarea data-field="detail" placeholder="詳細文章（任意）">${escapeHtml(ev.detail ?? '')}</textarea>
+        <input type="url" data-field="url" placeholder="https://..." value="${escapeHtml(ev.url ?? '')}" style="margin-top:.4em;">
+      </td>
+      <td>
+        <div class="row-actions">
+          <button data-action="save">保存</button>
+          <button class="reject" data-action="delete">削除</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  eventTableWrap.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>開催日</th><th>状態</th><th>タイトル・補足</th><th>詳細・URL</th><th>操作</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  eventTableWrap.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      if (action === 'save'){
+        const update = {};
+        tr.querySelectorAll('[data-field]').forEach(el => {
+          update[el.dataset.field] = el.value.trim() || null;
+        });
+        const { error: saveError } = await supabaseClient.from('events').update(update).eq('id', id);
+        if (saveError){ alert('保存に失敗しました: ' + saveError.message); btn.disabled = false; return; }
+      } else if (action === 'delete'){
+        if (!confirm('このお話会を削除します。よろしいですか？')) { btn.disabled = false; return; }
+        await supabaseClient.from('events').delete().eq('id', id);
+      }
+      await loadEvents();
+    });
+  });
+}
+
+eventForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  eventFormMsg.textContent = '追加しています…';
+  eventFormMsg.className = 'msg';
+
+  const payload = {
+    event_date: document.getElementById('ev-date').value || null,
+    status: document.getElementById('ev-status').value,
+    guest_name: document.getElementById('ev-guest').value.trim(),
+    theme: document.getElementById('ev-theme').value.trim() || null,
+    detail: document.getElementById('ev-detail').value.trim() || null,
+    url: document.getElementById('ev-url').value.trim() || null
+  };
+
+  const { error } = await supabaseClient.from('events').insert(payload);
+  if (error){
+    eventFormMsg.textContent = '追加に失敗しました: ' + error.message;
+    eventFormMsg.className = 'msg err';
+    return;
+  }
+  eventFormMsg.textContent = '追加しました。';
+  eventFormMsg.className = 'msg ok';
+  eventForm.reset();
+  await loadEvents();
+});
 
 init();
 </script>

@@ -32,13 +32,15 @@ create table if not exists events (
   event_date date,              -- 開催日
   guest_name text,              -- ゲスト名（例：ビールの和ちゃん）
   theme text,                   -- テーマ・一言紹介
-  url text,                     -- 詳細ページのURL（あれば「詳細を見る」リンクを表示）
+  detail text,                  -- サイト上に表示する詳細文章（あれば「詳細を見る」で開閉表示）
+  url text,                     -- 詳細ページのURL（あれば併せて外部リンクも表示）
   note text,                    -- 補足メモ（サイトには非表示）
   status text not null default 'upcoming'   -- upcoming（予定） / done（終了）
 );
 
--- 既存のテーブルに url がまだ無い場合はこちらを実行
+-- 既存のテーブルに url / detail がまだ無い場合はこちらを実行
 -- alter table events add column if not exists url text;
+-- alter table events add column if not exists detail text;
 
 -- 管理者テーブル：ログインして承認作業ができる人（Supabase Authのユーザーと1対1）
 create table if not exists admins (
@@ -89,6 +91,23 @@ create policy "events: public read"
   to anon
   using ( true );
 
+-- お話会：管理者は追加・編集・削除ができる
+create policy "events: admin insert"
+  on events for insert
+  to authenticated
+  with check ( exists (select 1 from admins where user_id = auth.uid()) );
+
+create policy "events: admin update"
+  on events for update
+  to authenticated
+  using ( exists (select 1 from admins where user_id = auth.uid()) )
+  with check ( exists (select 1 from admins where user_id = auth.uid()) );
+
+create policy "events: admin delete"
+  on events for delete
+  to authenticated
+  using ( exists (select 1 from admins where user_id = auth.uid()) );
+
 -- 管理者：自分が管理者かどうかを確認できる（自分の行だけ）
 create policy "admins: self read"
   on admins for select
@@ -98,14 +117,14 @@ create policy "admins: self read"
 -- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）
 -- ------------------------------------------------------------
-insert into events (event_date, guest_name, theme, url, status) values
-  ('2026-05-18', '愛菜ファームSin 遠山克彦さんと和咲美 梅ちゃんの座談会', null,
+insert into events (event_date, guest_name, theme, detail, url, status) values
+  ('2026-05-18', '愛菜ファームSin 遠山克彦さんと和咲美 梅ちゃんの座談会', null, null,
     'https://satoyama3.my.canva.site/talk3', 'done'),
-  ('2026-09-28', 'MIROC BEER 岩城知明さんと和咲美 梅ちゃんの座談会', null,
+  ('2026-09-28', 'MIROC BEER 岩城知明さんと和咲美 梅ちゃんの座談会', null, null,
     'https://satoyama3.my.canva.site/talk44', 'upcoming'),
-  ('2026-10-26', '空手の達人であり歌手さんと和咲美 梅ちゃんの座談会', null,
+  ('2026-10-26', '空手の達人であり歌手さんと和咲美 梅ちゃんの座談会', null, null,
     'https://satoyama3.my.canva.site/talk5', 'upcoming'),
-  ('2026-12-14', '達磨草履工房さんと和咲美でのリトリート', '（12/14(月)・12/15(火)）',
+  ('2026-12-14', '達磨草履工房さんと和咲美でのリトリート', '（12/14(月)・12/15(火)）', null,
     'https://satoyama3.my.canva.site/talk6', 'upcoming');
 
 insert into members (category, name, contact, address, lat, lng, url, status) values
