@@ -447,6 +447,15 @@
     letter-spacing:.03em;
     color:#D9B36C;
   }
+  .benefit-list{
+    list-style:none; margin:0 0 1.8em; padding:0;
+    display:grid; gap:.55em;
+    font-family:var(--font-label); font-size:.92rem; color:#D8D2BF;
+  }
+  .benefit-list li{ padding-left:1.3em; position:relative; }
+  .benefit-list li::before{
+    content:'○'; position:absolute; left:0; color:#D9B36C; font-size:.75em; top:.3em;
+  }
   .cta-row{ display:flex; flex-wrap:wrap; gap:1rem; margin-top:1.6rem; }
   .cta-btn{
     display:inline-block;
@@ -661,6 +670,12 @@
     <p style="max-width:36em;">OUEN-APPは、メンバー同士がお金やモノ・サービスを送り合い、支え合うための専用アプリです。このサイトの「参加している仲間」は紹介・掲載のための一覧ですが、実際のやり取りはOUEN-APP上で行います。</p>
 
     <p class="fee-note">新EDOの仲間になるには、月額500円かかります</p>
+
+    <ul class="benefit-list">
+      <li>月に一度のzoom会(無料)</li>
+      <li>春夏秋冬のオフ会(会員価格)</li>
+      <li>など参加いただけます♡</li>
+    </ul>
 
     <div class="cta-row">
       <a class="cta-btn primary" href="https://ouen.vercel.app/" target="_blank" rel="noopener noreferrer">OUEN-APPを開く</a>
