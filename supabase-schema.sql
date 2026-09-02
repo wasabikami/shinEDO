@@ -95,7 +95,7 @@ create policy "events: public read"
 create policy "events: admin read"
   on events for select
   to authenticated
-  using ( true );
+  using ( exists (select 1 from admins where user_id = auth.uid()) );
 
 -- お話会：管理者は追加・編集・削除ができる
 create policy "events: admin insert"

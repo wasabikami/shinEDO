@@ -251,12 +251,28 @@ async function init(){
   else showLogin();
 }
 
-function showLogin(){
+function showLogin(errorText){
   loginView.style.display = 'block';
   adminView.style.display = 'none';
+  if (errorText){
+    loginMsg.textContent = errorText;
+    loginMsg.className = 'msg err';
+  }
 }
 
 async function showAdmin(session){
+  const { data: adminRow } = await supabaseClient
+    .from('admins')
+    .select('user_id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  if (!adminRow){
+    await supabaseClient.auth.signOut();
+    showLogin('このアカウントは管理者として登録されていません。管理者にお問い合わせください。');
+    return;
+  }
+
   loginView.style.display = 'none';
   adminView.style.display = 'block';
   whoami.textContent = session.user.email;
@@ -310,6 +326,8 @@ loginForm.addEventListener('submit', async (e) => {
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
+  loginMsg.textContent = '';
+  loginMsg.className = 'msg';
   showLogin();
 });
 
