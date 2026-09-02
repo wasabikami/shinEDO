@@ -31,7 +31,7 @@
     font-family:var(--font-label);
     line-height:1.7;
   }
-  .wrap{ max-width:56rem; margin:0 auto; padding:2.5rem 1.5rem 5rem; }
+  .wrap{ max-width:78rem; margin:0 auto; padding:2.5rem 1.5rem 5rem; }
   h1{
     font-family:var(--font-display);
     color:var(--ai);
@@ -109,6 +109,13 @@
     border:1px solid rgba(31,58,95,.25); border-radius:2px; font-family:var(--font-label);
   }
   .event-row-edit textarea{ min-height:3rem; resize:vertical; }
+
+  .events-table{ table-layout:fixed; }
+  .events-table th:nth-child(1), .events-table td:nth-child(1){ width:8.5rem; }
+  .events-table th:nth-child(2), .events-table td:nth-child(2){ width:5rem; }
+  .events-table th:nth-child(3), .events-table td:nth-child(3){ width:24rem; }
+  .events-table th:nth-child(4), .events-table td:nth-child(4){ width:24rem; }
+  .events-table th:nth-child(5), .events-table td:nth-child(5){ width:6rem; }
 </style>
 </head>
 <body>
@@ -184,7 +191,7 @@
         </div>
       </form>
 
-      <div id="eventTableWrap">
+      <div id="eventTableWrap" style="overflow-x:auto;">
         <p class="state-msg">読み込み中…</p>
       </div>
     </div>
@@ -402,7 +409,7 @@ async function loadEvents(){
   `).join('');
 
   eventTableWrap.innerHTML = `
-    <table>
+    <table class="events-table">
       <thead>
         <tr><th>開催日</th><th>状態</th><th>タイトル・補足</th><th>詳細・URL</th><th>操作</th></tr>
       </thead>
