@@ -380,9 +380,13 @@ async function loadMembers(){
       <td>
         <span class="status-badge ${m.status === 'pending' ? 'pending' : ''}">${m.status === 'pending' ? '承認待ち' : '公開中'}</span>
       </td>
-      <td>
-        <div>${escapeHtml(m.name)}</div>
-        <div class="cell-small">${escapeHtml(m.category)}</div>
+      <td class="event-row-edit">
+        <input type="text" data-field="name" value="${escapeHtml(m.name)}" style="margin-bottom:.4em;">
+        <select data-field="category">
+          ${['個人', '里・村', 'コミュニティ', '団体・会社・企業'].map(c =>
+            `<option value="${c}" ${m.category === c ? 'selected' : ''}>${c}</option>`
+          ).join('')}
+        </select>
       </td>
       <td>
         <select data-action="type">
@@ -390,15 +394,16 @@ async function loadMembers(){
           <option value="general" ${m.member_type !== 'artisan' ? 'selected' : ''}>一般</option>
         </select>
       </td>
-      <td class="cell-small">
-        ${m.contact ? escapeHtml(m.contact) + '<br>' : ''}
-        ${m.address ? escapeHtml(m.address) + '<br>' : ''}
-        ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.url)}</a><br>` : ''}
-        ${m.message ? escapeHtml(m.message) : ''}
+      <td class="event-row-edit">
+        <input type="text" data-field="contact" placeholder="連絡先" value="${escapeHtml(m.contact ?? '')}" style="margin-bottom:.4em;">
+        <input type="text" data-field="address" placeholder="住所" value="${escapeHtml(m.address ?? '')}" style="margin-bottom:.4em;">
+        <input type="url" data-field="url" placeholder="https://..." value="${escapeHtml(m.url ?? '')}" style="margin-bottom:.4em;">
+        <textarea data-field="message" placeholder="メッセージ">${escapeHtml(m.message ?? '')}</textarea>
       </td>
       <td>
         <div class="row-actions">
           ${m.status === 'pending' ? '<button class="approve" data-action="approve">承認</button>' : '<button data-action="unapprove">非公開に戻す</button>'}
+          <button data-action="save-details">保存</button>
           <button class="reject" data-action="delete">削除</button>
         </div>
       </td>
@@ -406,7 +411,7 @@ async function loadMembers(){
   `).join('');
 
   tableWrap.innerHTML = `
-    <table>
+    <table class="members-table">
       <thead>
         <tr><th>状態</th><th>名前・区分</th><th>匠/一般</th><th>詳細</th><th>操作</th></tr>
       </thead>
@@ -433,6 +438,15 @@ async function loadMembers(){
       } else if (action === 'delete'){
         if (!confirm('このデータを削除します。よろしいですか？')) { btn.disabled = false; return; }
         await supabaseClient.from('members').delete().eq('id', id);
+      } else if (action === 'save-details'){
+        const tr = btn.closest('tr');
+        const update = {};
+        tr.querySelectorAll('[data-field]').forEach(el => {
+          update[el.dataset.field] = el.value.trim() || null;
+        });
+        update.name = update.name || (data.find(m => m.id === id) || {}).name;
+        const { error: saveError } = await supabaseClient.from('members').update(update).eq('id', id);
+        if (saveError){ alert('保存に失敗しました: ' + saveError.message); btn.disabled = false; return; }
       }
       await loadMembers();
     });

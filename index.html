@@ -942,8 +942,8 @@ function renderMemberMap(members){
     const marker = m.member_type === 'artisan'
       ? L.marker([m.lat, m.lng])
       : L.circleMarker([m.lat, m.lng], {
-          radius: 6, color: '#E4C15A', weight: 1.5,
-          fillColor: '#F7E3A1', fillOpacity: 0.9
+          radius: 11, color: '#8A6200', weight: 2.5,
+          fillColor: '#FFC93C', fillOpacity: 1
         });
     return marker.addTo(map).bindPopup(popup);
   });
