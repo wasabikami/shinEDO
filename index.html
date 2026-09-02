@@ -348,8 +348,11 @@
   }
   .member-count .unit{ font-family:var(--font-label); font-size:.95rem; color:#5a5347; }
   .member-tiles{
-    display:flex; flex-wrap:wrap; gap:.55em;
     margin-top:1.6rem;
+    display:grid; gap:.7em;
+  }
+  .member-tiles-row{
+    display:flex; flex-wrap:wrap; gap:.55em;
   }
   .member-tiles span, .member-tiles a{
     font-family:var(--font-label); font-size:.82rem;
@@ -900,17 +903,18 @@ async function loadMembers(){
 
   countEl.innerHTML = `${count ?? (data ? data.length : 0)}<span class="unit">人・団体</span>`;
 
-  const sortedMembers = [...(data || [])].sort((a, b) => {
-    const aArtisan = a.member_type === 'artisan' ? 0 : 1;
-    const bArtisan = b.member_type === 'artisan' ? 0 : 1;
-    return aArtisan - bArtisan;
-  });
-  tilesEl.innerHTML = sortedMembers.map(m => {
+  const tileHtml = m => {
     const safeUrl = /^https?:\/\//i.test(m.url || '') ? m.url : null;
     return safeUrl
       ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.name)}</a>`
       : `<span>${escapeHtml(m.name)}</span>`;
-  }).join('');
+  };
+  const artisans = (data || []).filter(m => m.member_type === 'artisan');
+  const generals = (data || []).filter(m => m.member_type !== 'artisan');
+  tilesEl.innerHTML = `
+    ${artisans.length ? `<div class="member-tiles-row">${artisans.map(tileHtml).join('')}</div>` : ''}
+    ${generals.length ? `<div class="member-tiles-row">${generals.map(tileHtml).join('')}</div>` : ''}
+  `;
   renderMemberMap(data || []);
 }
 
