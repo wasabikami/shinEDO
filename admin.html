@@ -148,6 +148,7 @@
     <div class="tabs">
       <button type="button" id="tabMembers" class="active">会員</button>
       <button type="button" id="tabEvents">お話会</button>
+      <button type="button" id="tabAdmins">管理者</button>
     </div>
 
     <div id="membersPanel">
@@ -192,6 +193,23 @@
       </form>
 
       <div id="eventTableWrap" style="overflow-x:auto;">
+        <p class="state-msg">読み込み中…</p>
+      </div>
+    </div>
+
+    <div id="adminsPanel" style="display:none;">
+      <form id="adminForm" class="event-form" style="grid-template-columns:1fr;">
+        <div>
+          <label for="admin-email">追加する人のメールアドレス</label>
+          <input id="admin-email" type="email" required placeholder="先にSupabase Authでユーザー作成が必要です">
+        </div>
+        <div>
+          <button type="submit" class="btn">管理者に追加</button>
+          <p id="adminFormMsg" class="msg" role="status"></p>
+        </div>
+      </form>
+
+      <div id="adminTableWrap">
         <p class="state-msg">読み込み中…</p>
       </div>
     </div>
@@ -247,23 +265,30 @@ async function showAdmin(session){
 
 const tabMembers = document.getElementById('tabMembers');
 const tabEvents = document.getElementById('tabEvents');
+const tabAdmins = document.getElementById('tabAdmins');
 const membersPanel = document.getElementById('membersPanel');
 const eventsPanel = document.getElementById('eventsPanel');
+const adminsPanel = document.getElementById('adminsPanel');
 let eventsLoaded = false;
+let adminsLoaded = false;
 
-tabMembers.addEventListener('click', () => {
-  tabMembers.classList.add('active');
-  tabEvents.classList.remove('active');
-  membersPanel.style.display = 'block';
-  eventsPanel.style.display = 'none';
-});
+function showTab(tab){
+  tabMembers.classList.toggle('active', tab === 'members');
+  tabEvents.classList.toggle('active', tab === 'events');
+  tabAdmins.classList.toggle('active', tab === 'admins');
+  membersPanel.style.display = tab === 'members' ? 'block' : 'none';
+  eventsPanel.style.display = tab === 'events' ? 'block' : 'none';
+  adminsPanel.style.display = tab === 'admins' ? 'block' : 'none';
+}
 
+tabMembers.addEventListener('click', () => showTab('members'));
 tabEvents.addEventListener('click', () => {
-  tabEvents.classList.add('active');
-  tabMembers.classList.remove('active');
-  eventsPanel.style.display = 'block';
-  membersPanel.style.display = 'none';
+  showTab('events');
   if (!eventsLoaded){ eventsLoaded = true; loadEvents(); }
+});
+tabAdmins.addEventListener('click', () => {
+  showTab('admins');
+  if (!adminsLoaded){ adminsLoaded = true; loadAdmins(); }
 });
 
 loginForm.addEventListener('submit', async (e) => {
@@ -463,6 +488,76 @@ eventForm.addEventListener('submit', async (e) => {
   eventFormMsg.className = 'msg ok';
   eventForm.reset();
   await loadEvents();
+});
+
+/* ---------- admins ---------- */
+const adminTableWrap = document.getElementById('adminTableWrap');
+const adminForm = document.getElementById('adminForm');
+const adminFormMsg = document.getElementById('adminFormMsg');
+
+async function loadAdmins(){
+  adminTableWrap.innerHTML = '<p class="state-msg">読み込み中…</p>';
+  const { data, error } = await supabaseClient.rpc('list_admins');
+
+  if (error){
+    adminTableWrap.innerHTML = `<p class="state-msg">読み込めませんでした。<br>${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || data.length === 0){
+    adminTableWrap.innerHTML = '<p class="state-msg">管理者がいません。</p>';
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const myEmail = session?.user?.email;
+
+  const rows = data.map(a => `
+    <tr data-email="${escapeHtml(a.email)}">
+      <td>${escapeHtml(a.email)}</td>
+      <td>
+        <button class="reject" data-action="revoke">削除</button>
+      </td>
+    </tr>
+  `).join('');
+
+  adminTableWrap.innerHTML = `
+    <table>
+      <thead><tr><th>メールアドレス</th><th>操作</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  adminTableWrap.querySelectorAll('button[data-action="revoke"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const email = btn.closest('tr').dataset.email;
+      const selfWarning = email === myEmail
+        ? '自分自身の管理者権限を外そうとしています。この操作を行うと、あなたはこの管理ページを使えなくなります。\n\n'
+        : '';
+      if (!confirm(`${selfWarning}${email} の管理者権限を外します。よろしいですか？`)) return;
+      btn.disabled = true;
+      const { error } = await supabaseClient.rpc('revoke_admin', { target_email: email });
+      if (error){ alert('削除に失敗しました: ' + error.message); btn.disabled = false; return; }
+      await loadAdmins();
+    });
+  });
+}
+
+adminForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('admin-email').value.trim();
+  adminFormMsg.textContent = '追加しています…';
+  adminFormMsg.className = 'msg';
+
+  const { error } = await supabaseClient.rpc('grant_admin', { target_email: email });
+  if (error){
+    adminFormMsg.textContent = '追加に失敗しました: ' + error.message;
+    adminFormMsg.className = 'msg err';
+    return;
+  }
+  adminFormMsg.textContent = '管理者に追加しました。';
+  adminFormMsg.className = 'msg ok';
+  adminForm.reset();
+  await loadAdmins();
 });
 
 init();

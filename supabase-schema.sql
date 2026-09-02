@@ -121,6 +121,69 @@ create policy "admins: self read"
   using ( user_id = auth.uid() );
 
 -- ------------------------------------------------------------
+-- 管理者の一覧・追加・削除（メールアドレス指定）
+-- admins/auth.usersへは直接select/insert/deleteの権限を渡さず、
+-- 「今の自分が管理者かどうか」をサーバー側でチェックする関数経由でのみ操作させる。
+-- ------------------------------------------------------------
+create or replace function public.list_admins()
+returns table (user_id uuid, email text)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from admins where user_id = auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+  select a.user_id, u.email::text
+  from admins a
+  join auth.users u on u.id = a.user_id
+  order by u.email;
+end;
+$$;
+
+create or replace function public.grant_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not exists (select 1 from admins where user_id = auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'そのメールアドレスのユーザーが見つかりません（先にSupabase AuthでUserを作成してください）';
+  end if;
+
+  insert into admins (user_id) values (target_id) on conflict do nothing;
+end;
+$$;
+
+create or replace function public.revoke_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not exists (select 1 from admins where user_id = auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'ユーザーが見つかりません';
+  end if;
+
+  delete from admins where user_id = target_id;
+end;
+$$;
+
+grant execute on function public.list_admins() to authenticated;
+grant execute on function public.grant_admin(text) to authenticated;
+grant execute on function public.revoke_admin(text) to authenticated;
+
+-- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）
 -- ------------------------------------------------------------
 insert into events (event_date, guest_name, theme, detail, url, status) values
