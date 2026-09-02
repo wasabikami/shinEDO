@@ -351,13 +351,15 @@
     display:flex; flex-wrap:wrap; gap:.55em;
     margin-top:1.6rem;
   }
-  .member-tiles span{
+  .member-tiles span, .member-tiles a{
     font-family:var(--font-label); font-size:.82rem;
     padding:.5em 1em; border-radius:2px;
     background:rgba(169,129,45,.08);
     border:1px solid rgba(169,129,45,.3);
     color:var(--sumi);
   }
+  .member-tiles a{ text-decoration:none; cursor:pointer; }
+  .member-tiles a:hover{ background:rgba(169,129,45,.18); border-color:var(--kincha); }
 
   /* ============ Dynamic: map ============ */
   #member-map{
@@ -895,7 +897,12 @@ async function loadMembers(){
   }
 
   countEl.innerHTML = `${count ?? (data ? data.length : 0)}<span class="unit">人・団体</span>`;
-  tilesEl.innerHTML = (data || []).map(m => `<span>${escapeHtml(m.name)}</span>`).join('');
+  tilesEl.innerHTML = (data || []).map(m => {
+    const safeUrl = /^https?:\/\//i.test(m.url || '') ? m.url : null;
+    return safeUrl
+      ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.name)}</a>`
+      : `<span>${escapeHtml(m.name)}</span>`;
+  }).join('');
   renderMemberMap(data || []);
 }
 
