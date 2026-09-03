@@ -224,6 +224,12 @@ begin
   if not found then
     return null;
   end if;
+
+  -- OUEN-APP側のプロフィールも無ければ作っておく（存在すればprofile-setup画面をスキップできる）
+  insert into public.profiles (id, name, message)
+  values (auth.uid(), v_row.name, coalesce(v_row.message, ''))
+  on conflict (id) do nothing;
+
   return to_jsonb(v_row);
 end;
 $$;

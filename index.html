@@ -1057,15 +1057,17 @@ applyForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('f-password').value;
   const phone = document.getElementById('f-phone').value.trim();
   const address = document.getElementById('f-address').value.trim() || null;
-  const args = {
-    p_category: document.getElementById('f-category').value,
-    p_name: document.getElementById('f-name').value.trim(),
-    p_contact: [email, phone].filter(Boolean).join(' / '),
-    p_address: address,
-    p_lat: null,
-    p_lng: null,
-    p_url: document.getElementById('f-url').value.trim() || null,
-    p_message: document.getElementById('f-message').value.trim()
+  const payload = {
+    category: document.getElementById('f-category').value,
+    name: document.getElementById('f-name').value.trim(),
+    contact: [email, phone].filter(Boolean).join(' / '),
+    email,
+    address,
+    lat: null,
+    lng: null,
+    url: document.getElementById('f-url').value.trim() || null,
+    message: document.getElementById('f-message').value.trim(),
+    status: 'pending'
   };
 
   if (!supabaseClient){
@@ -1087,24 +1089,26 @@ applyForm.addEventListener('submit', async (e) => {
     msgEl.className = 'form-msg err';
     return;
   }
-  if (!signUpData.session){
-    msgEl.textContent = 'アカウントは作成されましたが、ログインできませんでした。時間をおいてマイページからログインしてください。';
-    msgEl.className = 'form-msg err';
-    return;
-  }
 
   if (address){
     const geo = await geocodeAddress(address);
-    if (geo){ args.p_lat = geo.lat; args.p_lng = geo.lng; }
+    if (geo){ payload.lat = geo.lat; payload.lng = geo.lng; }
   }
 
-  const { error } = await supabaseClient.rpc('create_my_member', args);
+  const { error } = await supabaseClient.from('members').insert(payload);
   if (error){
     msgEl.textContent = '送信に失敗しました。時間をおいて、もう一度お試しください。';
     msgEl.className = 'form-msg err';
     return;
   }
-  msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。マイページからいつでも編集できます。';
+
+  if (signUpData.session){
+    // メール確認不要な設定の場合は、この場ですぐ紐付け＆OUEN-APPプロフィールも用意する
+    await supabaseClient.rpc('claim_member');
+    msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。マイページからいつでも編集できます。';
+  } else {
+    msgEl.textContent = '受け取りました。確認メールをお送りしました。メール内のリンクを開いてから、マイページにログインしてください。';
+  }
   msgEl.className = 'form-msg ok';
   applyForm.reset();
 });
