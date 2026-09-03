@@ -10,7 +10,8 @@ create table if not exists members (
   created_at timestamptz not null default now(),
   category text not null,       -- 個人 / 里・村 / コミュニティ / 団体・会社・企業
   name text not null,           -- お名前・団体名
-  contact text,                 -- 連絡先
+  contact text,                 -- 連絡先（旧・email/phone統合欄。互換のため残置、新規は使わない）
+  phone text,                   -- 電話番号
   address text,                 -- 所在地（地図・表示用）
   lat double precision,         -- 緯度（地図に表示する場合に設定）
   lng double precision,         -- 経度（地図に表示する場合に設定）
@@ -30,6 +31,7 @@ create table if not exists members (
 -- alter table members add column if not exists member_type text not null default 'general';
 -- alter table members add column if not exists email text;
 -- alter table members add column if not exists owner_id uuid references auth.users(id) on delete set null;
+-- alter table members add column if not exists phone text;
 
 -- お話会テーブル：開催予定・実施履歴を管理する
 create table if not exists events (
@@ -226,9 +228,9 @@ begin
   end if;
 
   -- OUEN-APP側のプロフィールも無ければ作っておく（存在すればprofile-setup画面をスキップできる）
-  -- 区分→職業、住所→地域として引き継ぐ
-  insert into public.profiles (id, name, job, area, message)
-  values (auth.uid(), v_row.name, coalesce(v_row.category, ''), coalesce(v_row.address, ''), coalesce(v_row.message, ''))
+  -- 区分→職業、住所→地域、緯度経度・メールもそのまま引き継ぐ
+  insert into public.profiles (id, name, job, area, message, lat, lng, email)
+  values (auth.uid(), v_row.name, coalesce(v_row.category, ''), coalesce(v_row.address, ''), coalesce(v_row.message, ''), v_row.lat, v_row.lng, v_email)
   on conflict (id) do nothing;
 
   return to_jsonb(v_row);
@@ -251,8 +253,10 @@ end;
 $$;
 
 -- 自分の会員情報を編集（status・member_type・owner_idは変更不可）
+drop function if exists public.update_my_member(text,text,text,text,double precision,double precision,text,text);
+
 create or replace function public.update_my_member(
-  p_name text, p_category text, p_contact text, p_address text,
+  p_name text, p_category text, p_phone text, p_address text,
   p_lat double precision, p_lng double precision, p_url text, p_message text
 )
 returns members
@@ -263,7 +267,7 @@ begin
   update members set
     name = p_name,
     category = p_category,
-    contact = p_contact,
+    phone = p_phone,
     address = p_address,
     lat = p_lat,
     lng = p_lng,
@@ -317,11 +321,15 @@ grant execute on function public.claim_member() to authenticated;
 grant execute on function public.get_my_member() to authenticated;
 grant execute on function public.update_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
 
--- 既存会員のメールアドレスを、連絡先(contact)欄からベストエフォートで抽出しておく
--- （新規応募からは専用のemail欄に保存されるので、これは移行時の一度きりの処置）
+-- 既存会員のメールアドレス・電話番号を、連絡先(contact)欄からベストエフォートで抽出しておく
+-- （新規応募からは専用のemail/phone欄に保存されるので、これは移行時の一度きりの処置）
 update members
 set email = substring(contact from '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
 where email is null and contact is not null;
+
+update members
+set phone = substring(contact from '0[0-9]{1,4}-?[0-9]{1,4}-?[0-9]{3,4}')
+where phone is null and contact is not null;
 
 -- ------------------------------------------------------------
 -- 動作確認用のサンプルデータ（不要であれば削除してください）

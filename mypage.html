@@ -277,8 +277,8 @@ async function loadMyMember(){
         <input id="m-name" type="text" required value="${escapeHtml(member.name)}">
       </div>
       <div class="field">
-        <label for="m-contact">電話番号※</label>
-        <input id="m-contact" type="tel" required value="${escapeHtml(member.contact ?? '')}">
+        <label for="m-phone">電話番号※</label>
+        <input id="m-phone" type="tel" required value="${escapeHtml(member.phone ?? '')}">
       </div>
       <div class="field">
         <label for="m-address">住所※</label>
@@ -320,7 +320,7 @@ async function loadMyMember(){
     const { error: saveError } = await supabaseClient.rpc('update_my_member', {
       p_name: document.getElementById('m-name').value.trim(),
       p_category: document.getElementById('m-category').value,
-      p_contact: document.getElementById('m-contact').value.trim() || null,
+      p_phone: document.getElementById('m-phone').value.trim() || null,
       p_address: newAddress,
       p_lat: lat,
       p_lng: lng,

@@ -1059,8 +1059,8 @@ applyForm.addEventListener('submit', async (e) => {
   const payload = {
     category: document.getElementById('f-category').value,
     name: document.getElementById('f-name').value.trim(),
-    contact: [email, phone].filter(Boolean).join(' / '),
     email,
+    phone: phone || null,
     address,
     lat: null,
     lng: null,

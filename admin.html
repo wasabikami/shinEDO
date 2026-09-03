@@ -389,7 +389,7 @@ async function loadMembers(){
 function applyMemberSearch(){
   const q = document.getElementById('memberSearch').value.trim().toLowerCase();
   const list = !q ? allMembers : allMembers.filter(m => [
-    m.name, m.category, m.contact, m.address, m.message, m.url, m.email
+    m.name, m.category, m.phone, m.address, m.message, m.url, m.email
   ].some(v => (v ?? '').toLowerCase().includes(q)));
   renderMembersTable(list);
 }
@@ -418,7 +418,8 @@ function renderMembersTable(data){
         </select>
       </td>
       <td class="event-row-edit">
-        <input type="text" data-field="contact" placeholder="連絡先" value="${escapeHtml(m.contact ?? '')}" style="margin-bottom:.4em;">
+        <input type="email" data-field="email" placeholder="メールアドレス" value="${escapeHtml(m.email ?? '')}" style="margin-bottom:.4em;">
+        <input type="tel" data-field="phone" placeholder="電話番号" value="${escapeHtml(m.phone ?? '')}" style="margin-bottom:.4em;">
         <input type="text" data-field="address" placeholder="住所" value="${escapeHtml(m.address ?? '')}" style="margin-bottom:.4em;">
         <input type="url" data-field="url" placeholder="https://..." value="${escapeHtml(m.url ?? '')}" style="margin-bottom:.4em;">
         <textarea data-field="message" placeholder="メッセージ">${escapeHtml(m.message ?? '')}</textarea>
