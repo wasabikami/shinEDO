@@ -226,8 +226,9 @@ begin
   end if;
 
   -- OUEN-APP側のプロフィールも無ければ作っておく（存在すればprofile-setup画面をスキップできる）
-  insert into public.profiles (id, name, message)
-  values (auth.uid(), v_row.name, coalesce(v_row.message, ''))
+  -- 区分→職業、住所→地域として引き継ぐ
+  insert into public.profiles (id, name, job, area, message)
+  values (auth.uid(), v_row.name, coalesce(v_row.category, ''), coalesce(v_row.address, ''), coalesce(v_row.message, ''))
   on conflict (id) do nothing;
 
   return to_jsonb(v_row);
