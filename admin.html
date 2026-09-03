@@ -409,11 +409,7 @@ function renderMembersTable(data){
       </td>
       <td class="event-row-edit">
         <input type="text" data-field="name" value="${escapeHtml(m.name)}" style="margin-bottom:.4em;">
-        <select data-field="category">
-          ${['個人', '里・村', 'コミュニティ', '団体・会社・企業'].map(c =>
-            `<option value="${c}" ${m.category === c ? 'selected' : ''}>${c}</option>`
-          ).join('')}
-        </select>
+        <input type="text" data-field="category" placeholder="職業" value="${escapeHtml(m.category)}">
       </td>
       <td>
         <select data-action="type">
