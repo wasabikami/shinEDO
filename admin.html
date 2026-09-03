@@ -136,8 +136,7 @@
 <body>
 
 <div class="wrap">
-  <h1>shinEDO project — 管理ページ</h1>
-  <p class="muted">応募の承認・却下は、ログインした管理者だけが行えます。</p>
+  <h1 style="margin-bottom:1.2rem;">shinEDO project — 管理ページ</h1>
 
   <div id="loginView">
     <form id="loginForm">
@@ -178,6 +177,9 @@
     </div>
 
     <div id="membersPanel">
+      <div class="field" style="max-width:20rem; margin-bottom:1rem;">
+        <input id="memberSearch" type="text" placeholder="名前・住所・連絡先などで検索">
+      </div>
       <div id="memberTableWrap">
         <p class="state-msg">読み込み中…</p>
       </div>
@@ -366,6 +368,8 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   showLogin();
 });
 
+let allMembers = [];
+
 async function loadMembers(){
   tableWrap.innerHTML = '<p class="state-msg">読み込み中…</p>';
   const { data, error } = await supabaseClient
@@ -378,7 +382,22 @@ async function loadMembers(){
     tableWrap.innerHTML = `<p class="state-msg">読み込めませんでした（あなたは管理者として登録されていない可能性があります）。<br>${escapeHtml(error.message)}</p>`;
     return;
   }
-  if (!data || data.length === 0){
+  allMembers = data || [];
+  applyMemberSearch();
+}
+
+function applyMemberSearch(){
+  const q = document.getElementById('memberSearch').value.trim().toLowerCase();
+  const list = !q ? allMembers : allMembers.filter(m => [
+    m.name, m.category, m.contact, m.address, m.message, m.url, m.email
+  ].some(v => (v ?? '').toLowerCase().includes(q)));
+  renderMembersTable(list);
+}
+
+document.getElementById('memberSearch').addEventListener('input', applyMemberSearch);
+
+function renderMembersTable(data){
+  if (data.length === 0){
     tableWrap.innerHTML = '<p class="state-msg">会員データがありません。</p>';
     return;
   }
