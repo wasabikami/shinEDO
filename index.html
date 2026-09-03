@@ -1079,7 +1079,10 @@ applyForm.addEventListener('submit', async (e) => {
   msgEl.textContent = '送っています…';
   msgEl.className = 'form-msg';
 
-  const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+  const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { emailRedirectTo: 'https://wasabikami.github.io/shinEDO/mypage.html' }
+  });
   if (signUpError){
     if (signUpError.message.includes('already registered')){
       msgEl.textContent = 'このメールアドレスはすでに登録されています。マイページからログインしてください。';

@@ -204,7 +204,10 @@ loginForm.addEventListener('submit', async (e) => {
   authMsg.className = 'msg';
 
   if (mode === 'signup'){
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    const { data, error } = await supabaseClient.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: 'https://wasabikami.github.io/shinEDO/mypage.html' }
+    });
     if (error){
       authMsg.textContent = '登録できませんでした: ' + error.message;
       authMsg.className = 'msg err';
