@@ -303,8 +303,12 @@
     padding:1.1rem 0;
     border-bottom:1px solid rgba(31,58,95,.16);
   }
+  .event-row > div{ min-width:0; }
   @media (max-width:560px){
     .event-row{ grid-template-columns:1fr; gap:.2rem; }
+    .event-row .tag{ justify-self:start; margin-top:.4em; }
+    .question-field .q{ padding:1.1rem 1rem 1rem; font-size:1.05rem; }
+    .rules .rule{ padding:1.2rem 1.3rem; }
   }
   .event-row .date{ font-family:var(--font-label); font-size:.82rem; color:var(--shu); }
   .event-row .guest{ font-family:var(--font-display); font-size:1.05rem; color:var(--ai); }
@@ -323,6 +327,7 @@
   .event-detail p{
     margin:.6em 0 0; font-size:.9rem; color:var(--sumi);
     max-width:34em; white-space:normal;
+    overflow-wrap:anywhere; word-break:break-word;
   }
   .event-detail .event-link{ margin-top:.5em; }
   .event-row.is-done{ opacity:.55; }
