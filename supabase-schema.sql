@@ -277,9 +277,16 @@ create or replace function public.update_my_member(
 returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
+  v_email text := (select email from auth.users where id = auth.uid());
   v_row profiles;
 begin
-  update profiles set
+  if v_email is null then
+    raise exception 'not authenticated';
+  end if;
+
+  insert into public.profiles (id, name, category, phone, area, lat, lng, url, message, email, job, member_type, status)
+  values (auth.uid(), p_name, p_category, p_phone, p_address, p_lat, p_lng, p_url, p_message, v_email, coalesce(p_category, ''), 'general', 'pending')
+  on conflict (id) do update set
     name = p_name,
     category = p_category,
     phone = p_phone,
@@ -287,13 +294,12 @@ begin
     lat = p_lat,
     lng = p_lng,
     url = p_url,
-    message = p_message
-  where id = auth.uid() and status is not null
+    message = p_message,
+    job = coalesce(nullif(profiles.job, ''), p_category),
+    status = coalesce(profiles.status, 'pending'),
+    email = coalesce(profiles.email, v_email)
   returning * into v_row;
 
-  if v_row.id is null then
-    raise exception 'not authorized or no linked member';
-  end if;
   return to_jsonb(v_row);
 end;
 $$;

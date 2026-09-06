@@ -763,14 +763,7 @@
     </div>
 
     <form id="applyForm" class="apply-form is-hidden">
-      <div class="field">
-        <label for="f-category">職業・活動※</label>
-        <input id="f-category" type="text" required placeholder="例: 和紙職人、団体・会社・企業 など">
-      </div>
-      <div class="field">
-        <label for="f-name">お名前 / 団体名※</label>
-        <input id="f-name" type="text" required>
-      </div>
+      <p class="field-note" style="margin:-.4rem 0 1rem;">まずはアカウントを作成してください。お名前・職業・住所などの詳細は、確認メール後にマイページから入力できます。</p>
       <div class="field">
         <label for="f-email">メールアドレス※</label>
         <input id="f-email" type="email" required>
@@ -782,22 +775,6 @@
           <button type="button" id="toggleApplyPassword" class="password-toggle" aria-label="パスワードを表示">👁</button>
         </div>
         <p class="field-note">マイページへのログインに使います</p>
-      </div>
-      <div class="field">
-        <label for="f-phone">電話番号</label>
-        <input id="f-phone" type="tel">
-      </div>
-      <div class="field">
-        <label for="f-address">住所</label>
-        <input id="f-address" type="text">
-      </div>
-      <div class="field">
-        <label for="f-url">サイト・SNSのURL</label>
-        <input id="f-url" type="url" placeholder="https://...">
-      </div>
-      <div class="field">
-        <label for="f-message">一言</label>
-        <textarea id="f-message"></textarea>
       </div>
       <p class="required-note">※は必須です</p>
       <button type="submit" class="submit-btn">この指とーまれ、で送る</button>
@@ -1024,21 +1001,6 @@ hankoBtn.addEventListener('click', () => {
   if (willShow) applyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-/* ---------- address -> lat/lng (国土地理院 住所検索API) ---------- */
-async function geocodeAddress(address){
-  const query = address.replace(/^〒?\s*\d{3}-?\d{4}\s*/, '').trim();
-  try {
-    const res = await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q=' + encodeURIComponent(query));
-    if (!res.ok) return null;
-    const results = await res.json();
-    if (!Array.isArray(results) || results.length === 0) return null;
-    const [lng, lat] = results[0].geometry.coordinates;
-    return { lat, lng };
-  } catch {
-    return null;
-  }
-}
-
 document.getElementById('toggleApplyPassword').addEventListener('click', () => {
   const pw = document.getElementById('f-password');
   const btn = document.getElementById('toggleApplyPassword');
@@ -1053,20 +1015,6 @@ applyForm.addEventListener('submit', async (e) => {
   const msgEl = document.getElementById('formMsg');
   const email = document.getElementById('f-email').value.trim();
   const password = document.getElementById('f-password').value;
-  const phone = document.getElementById('f-phone').value.trim();
-  const address = document.getElementById('f-address').value.trim() || null;
-  const payload = {
-    category: document.getElementById('f-category').value,
-    name: document.getElementById('f-name').value.trim(),
-    email,
-    phone: phone || null,
-    address,
-    lat: null,
-    lng: null,
-    url: document.getElementById('f-url').value.trim() || null,
-    message: document.getElementById('f-message').value.trim(),
-    status: 'pending'
-  };
 
   if (!supabaseClient){
     msgEl.textContent = 'Supabaseが未接続のため、送信できません。管理者へ設定を依頼してください。';
@@ -1091,24 +1039,10 @@ applyForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  if (address){
-    const geo = await geocodeAddress(address);
-    if (geo){ payload.lat = geo.lat; payload.lng = geo.lng; }
-  }
-
-  const { error } = await supabaseClient.from('members').insert(payload);
-  if (error){
-    msgEl.textContent = '送信に失敗しました。時間をおいて、もう一度お試しください。';
-    msgEl.className = 'form-msg err';
-    return;
-  }
-
   if (signUpData.session){
-    // メール確認不要な設定の場合は、この場ですぐ紐付け＆OUEN-APPプロフィールも用意する
-    await supabaseClient.rpc('claim_member');
-    msgEl.textContent = '受け取りました。ありがとうございます。承認され次第、掲載されます。マイページからいつでも編集できます。';
+    msgEl.textContent = 'アカウントを作成しました。このままマイページで詳細を入力してください。';
   } else {
-    msgEl.textContent = '受け取りました。確認メールをお送りしました。メール内のリンクを開いてから、マイページにログインしてください。';
+    msgEl.textContent = '確認メールをお送りしました。メール内のリンクを開いてから、マイページで詳細を入力してください。';
   }
   msgEl.className = 'form-msg ok';
   applyForm.reset();

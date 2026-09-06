@@ -248,21 +248,16 @@ async function loadMyMember(){
     return;
   }
 
-  if (!member){
-    editBody.innerHTML = `
-      <p class="state-msg">
-        このメールアドレスに一致する登録が見つかりませんでした。<br>
-        まだ応募がお済みでない場合は、先に<a href="https://wasabikami.github.io/shinEDO/#apply" target="_blank" rel="noopener noreferrer">応募フォーム</a>からご登録ください。<br>
-        すでに応募済みの場合は、応募時に入力したメールアドレスと同じものでログインしてください。
-      </p>`;
-    return;
-  }
+  member = member || {};
+  const statusLabel = member.status === 'pending' ? '承認待ち'
+    : member.status === 'approved' ? '公開中'
+    : '未応募（下の内容を入力して送信してください）';
 
   editBody.innerHTML = `
     <form id="editForm">
       <div class="field">
         <label for="m-status">状態</label>
-        <input type="text" value="${member.status === 'pending' ? '承認待ち' : '公開中'}" disabled>
+        <input type="text" value="${statusLabel}" disabled>
       </div>
       <div class="field">
         <label for="m-category">職業・活動</label>
