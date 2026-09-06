@@ -197,54 +197,71 @@ grant execute on function public.revoke_admin(text) to authenticated;
 -- 「自分のowner_idが一致する行だけ」を扱う関数経由でのみ操作させる。
 -- ------------------------------------------------------------
 
--- ログイン直後に1回呼ぶ：自分のメールアドレスと一致する未紐付けの会員行があれば、
--- 自分のアカウント（owner_id）として紐付ける。
--- 戻り値はjsonb（membersの行型のままだと、Postgresの仕様上「本当にNULL」を
--- 返してもJSONへの変換時に「全項目がnullのオブジェクト」になってしまい、
--- JS側で「見つからなかった」ことを正しく判定できないため）
+-- membersとprofilesを統合済み。以降このセクションは「profiles」が本体で、
+-- 「members」は未ログインの応募者を一時的に受け止めるだけの受付台帳。
+-- ログイン直後にclaim_memberを1回呼ぶと、該当するmembers行があればprofilesへ
+-- 完全に統合（コピー＋members側は削除）される。
 drop function if exists public.claim_member();
 drop function if exists public.get_my_member();
+drop function if exists public.update_my_member(text,text,text,text,double precision,double precision,text,text);
+drop function if exists public.create_my_member(text,text,text,text,double precision,double precision,text,text);
 
 create or replace function public.claim_member()
 returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_email text := (select email from auth.users where id = auth.uid());
-  v_id uuid;
-  v_row members;
+  v_member members;
+  v_profile profiles;
 begin
   if v_email is null then
     raise exception 'not authenticated';
   end if;
 
-  select id into v_id from members where email = v_email and owner_id is null limit 1;
-  if v_id is not null then
-    update members set owner_id = auth.uid() where id = v_id;
+  -- すでにprofiles側に統合済み（shinEDOのstatusを持っている）ならそれを返す
+  select * into v_profile from profiles where id = auth.uid() and status is not null;
+  if found then
+    return to_jsonb(v_profile);
   end if;
 
-  select * into v_row from members where owner_id = auth.uid();
+  -- 未紐付のmembers行（応募したがまだログインしていない人）を探す
+  select * into v_member from members where email = v_email and owner_id is null limit 1;
   if not found then
     return null;
   end if;
 
-  -- OUEN-APP側のプロフィールも無ければ作っておく（存在すればprofile-setup画面をスキップできる）
-  -- 区分→職業、住所→地域、緯度経度・メールもそのまま引き継ぐ
-  insert into public.profiles (id, name, job, area, message, lat, lng, email)
-  values (auth.uid(), v_row.name, coalesce(v_row.category, ''), coalesce(v_row.address, ''), coalesce(v_row.message, ''), v_row.lat, v_row.lng, v_email)
-  on conflict (id) do nothing;
+  insert into public.profiles (id, name, job, area, message, lat, lng, email, category, phone, url, member_type, status)
+  values (
+    auth.uid(), v_member.name, coalesce(v_member.category, ''), coalesce(v_member.address, ''),
+    coalesce(v_member.message, ''), v_member.lat, v_member.lng, v_email,
+    v_member.category, v_member.phone, v_member.url, v_member.member_type, v_member.status
+  )
+  on conflict (id) do update set
+    category = excluded.category,
+    phone = excluded.phone,
+    url = excluded.url,
+    member_type = excluded.member_type,
+    status = excluded.status,
+    area = coalesce(nullif(profiles.area, ''), excluded.area),
+    lat = coalesce(profiles.lat, excluded.lat),
+    lng = coalesce(profiles.lng, excluded.lng),
+    email = coalesce(profiles.email, excluded.email);
 
-  return to_jsonb(v_row);
+  delete from members where id = v_member.id;
+
+  select * into v_profile from profiles where id = auth.uid();
+  return to_jsonb(v_profile);
 end;
 $$;
 
--- 自分に紐付いている会員情報を取得
+-- 自分に紐付いているshinEDO会員情報を取得（profilesのstatusが設定されている人のみ）
 create or replace function public.get_my_member()
 returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  v_row members;
+  v_row profiles;
 begin
-  select * into v_row from members where owner_id = auth.uid();
+  select * into v_row from profiles where id = auth.uid() and status is not null;
   if not found then
     return null;
   end if;
@@ -252,74 +269,59 @@ begin
 end;
 $$;
 
--- 自分の会員情報を編集（status・member_type・owner_idは変更不可）
-drop function if exists public.update_my_member(text,text,text,text,double precision,double precision,text,text);
-
+-- 自分の会員情報を編集（status・member_type・is_admin・is_paidは変更不可）
 create or replace function public.update_my_member(
   p_name text, p_category text, p_phone text, p_address text,
   p_lat double precision, p_lng double precision, p_url text, p_message text
 )
-returns members
+returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  v_row members;
+  v_row profiles;
 begin
-  update members set
+  update profiles set
     name = p_name,
     category = p_category,
     phone = p_phone,
-    address = p_address,
+    area = p_address,
     lat = p_lat,
     lng = p_lng,
     url = p_url,
     message = p_message
-  where owner_id = auth.uid()
+  where id = auth.uid() and status is not null
   returning * into v_row;
 
   if v_row.id is null then
     raise exception 'not authorized or no linked member';
   end if;
-  return v_row;
-end;
-$$;
-
--- 応募フォームから、アカウント作成と同時に会員データを作る（新しい応募専用の一体化フロー）
-create or replace function public.create_my_member(
-  p_category text, p_name text, p_contact text, p_address text,
-  p_lat double precision, p_lng double precision, p_url text, p_message text
-)
-returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare
-  v_email text := (select email from auth.users where id = auth.uid());
-  v_row members;
-begin
-  if v_email is null then
-    raise exception 'not authenticated';
-  end if;
-
-  if exists (select 1 from members where owner_id = auth.uid()) then
-    raise exception 'already applied';
-  end if;
-
-  insert into members (category, name, contact, address, lat, lng, url, message, email, owner_id, status)
-  values (p_category, p_name, p_contact, p_address, p_lat, p_lng, p_url, p_message, v_email, auth.uid(), 'pending')
-  returning * into v_row;
-
-  -- OUEN-APP側のプロフィールも先に作っておく（存在すればprofile-setup画面をスキップできる）
-  insert into public.profiles (id, name, message)
-  values (auth.uid(), p_name, coalesce(p_message, ''))
-  on conflict (id) do nothing;
-
   return to_jsonb(v_row);
 end;
 $$;
 
-grant execute on function public.create_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
-
 grant execute on function public.claim_member() to authenticated;
 grant execute on function public.get_my_member() to authenticated;
 grant execute on function public.update_my_member(text,text,text,text,double precision,double precision,text,text) to authenticated;
+
+-- shinEDO管理画面用：profilesのうちshinEDOに紐づく行（statusがある行）を、
+-- email列も含めて一覧取得する（profiles.emailは一般ユーザーからは見えない列のため、
+-- 管理者チェック付きのこの関数経由でのみ取得できる）
+create or replace function public.admin_list_members()
+returns setof profiles
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from admins where user_id = auth.uid())
+     and not coalesce((select is_admin from profiles where id = auth.uid()), false) then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+    select * from profiles
+    where status is not null
+    order by (status = 'pending') desc, created_at desc;
+end;
+$$;
+
+grant execute on function public.admin_list_members() to authenticated;
 
 -- 既存会員のメールアドレス・電話番号を、連絡先(contact)欄からベストエフォートで抽出しておく
 -- （新規応募からは専用のemail/phone欄に保存されるので、これは移行時の一度きりの処置）

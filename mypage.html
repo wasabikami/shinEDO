@@ -278,7 +278,7 @@ async function loadMyMember(){
       </div>
       <div class="field">
         <label for="m-address">住所※</label>
-        <input id="m-address" type="text" required value="${escapeHtml(member.address ?? '')}">
+        <input id="m-address" type="text" required value="${escapeHtml(member.area ?? '')}">
       </div>
       <div class="field">
         <label for="m-url">サイト・SNSのURL</label>
@@ -305,7 +305,7 @@ async function loadMyMember(){
     const newAddress = document.getElementById('m-address').value.trim() || null;
     let lat = member.lat;
     let lng = member.lng;
-    if (newAddress && newAddress !== member.address){
+    if (newAddress && newAddress !== member.area){
       submitBtn.textContent = '座標取得中…';
       const geo = await geocodeAddress(newAddress);
       if (geo){ lat = geo.lat; lng = geo.lng; }
