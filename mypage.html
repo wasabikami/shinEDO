@@ -265,12 +265,8 @@ async function loadMyMember(){
         <input type="text" value="${member.status === 'pending' ? '承認待ち' : '公開中'}" disabled>
       </div>
       <div class="field">
-        <label for="m-category">参加の形</label>
-        <select id="m-category">
-          ${['個人', '里・村', 'コミュニティ', '団体・会社・企業'].map(c =>
-            `<option value="${c}" ${member.category === c ? 'selected' : ''}>${c}</option>`
-          ).join('')}
-        </select>
+        <label for="m-category">職業・活動</label>
+        <input id="m-category" type="text" value="${escapeHtml(member.category ?? '')}">
       </div>
       <div class="field">
         <label for="m-name">お名前 / 団体名※</label>
