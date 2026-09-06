@@ -285,16 +285,16 @@ begin
   end if;
 
   insert into public.profiles (id, name, category, phone, area, lat, lng, url, message, email, job, member_type, status)
-  values (auth.uid(), p_name, p_category, p_phone, p_address, p_lat, p_lng, p_url, p_message, v_email, coalesce(p_category, ''), 'general', 'pending')
+  values (auth.uid(), p_name, p_category, coalesce(p_phone, ''), p_address, p_lat, p_lng, coalesce(p_url, ''), coalesce(p_message, ''), v_email, coalesce(p_category, ''), 'general', 'pending')
   on conflict (id) do update set
     name = p_name,
     category = p_category,
-    phone = p_phone,
+    phone = coalesce(p_phone, ''),
     area = p_address,
     lat = p_lat,
     lng = p_lng,
-    url = p_url,
-    message = p_message,
+    url = coalesce(p_url, ''),
+    message = coalesce(p_message, ''),
     job = coalesce(nullif(profiles.job, ''), p_category),
     status = coalesce(profiles.status, 'pending'),
     email = coalesce(profiles.email, v_email)

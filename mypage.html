@@ -214,7 +214,7 @@ loginForm.addEventListener('submit', async (e) => {
       return;
     }
     if (!data.session){
-      authMsg.textContent = '確認メールを送りました。メール内のリンクを開いてから、ログインしてください。';
+      authMsg.textContent = '確認メールを送りました。メール内のリンクを開いてから、ログインしてください。（届かない場合は迷惑メールフォルダもご確認ください）';
       authMsg.className = 'msg ok';
       return;
     }

@@ -1042,7 +1042,7 @@ applyForm.addEventListener('submit', async (e) => {
   if (signUpData.session){
     msgEl.textContent = 'アカウントを作成しました。このままマイページで詳細を入力してください。';
   } else {
-    msgEl.textContent = '確認メールをお送りしました。メール内のリンクを開いてから、マイページで詳細を入力してください。';
+    msgEl.textContent = '確認メールをお送りしました。メール内のリンクを開いてから、マイページで詳細を入力してください。（届かない場合は迷惑メールフォルダもご確認ください）';
   }
   msgEl.className = 'form-msg ok';
   applyForm.reset();
