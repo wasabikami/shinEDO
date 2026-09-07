@@ -372,3 +372,120 @@ insert into members (category, name, contact, address, lat, lng, url, member_typ
 -- 新しい会員を地図に載せたい場合は、Googleマップで場所を右クリックし
 -- 表示される緯度・経度をコピーして lat / lng 列に入力してください。
 -- ------------------------------------------------------------
+
+-- ------------------------------------------------------------
+-- admins統合の取りこぼし修正：
+-- members/eventsのRLSと管理者関数が、古いadminsテーブルの有無だけを
+-- チェックしていた。OUEN-APP側の管理画面で「管理者にする」を押すと
+-- profiles.is_adminだけが立ってadminsテーブルには入らないため、
+-- そちらだけで管理者になった人はmembers/eventsを操作できなかった
+-- （RLSは権限不足時にエラーを出さず0件ヒットとして黙って失敗する）。
+-- admins在籍 または profiles.is_admin のどちらかで管理者と認める
+-- 共通関数に差し替える。
+-- ------------------------------------------------------------
+create or replace function public.is_shinedo_admin()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from admins where user_id = auth.uid())
+      or coalesce((select is_admin from profiles where id = auth.uid()), false);
+$$;
+
+drop policy if exists "members: admin read all" on members;
+create policy "members: admin read all"
+  on members for select
+  to authenticated
+  using ( public.is_shinedo_admin() );
+
+drop policy if exists "members: admin update" on members;
+create policy "members: admin update"
+  on members for update
+  to authenticated
+  using ( public.is_shinedo_admin() )
+  with check ( public.is_shinedo_admin() );
+
+drop policy if exists "members: admin delete" on members;
+create policy "members: admin delete"
+  on members for delete
+  to authenticated
+  using ( public.is_shinedo_admin() );
+
+drop policy if exists "events: admin read" on events;
+create policy "events: admin read"
+  on events for select
+  to authenticated
+  using ( public.is_shinedo_admin() );
+
+drop policy if exists "events: admin insert" on events;
+create policy "events: admin insert"
+  on events for insert
+  to authenticated
+  with check ( public.is_shinedo_admin() );
+
+drop policy if exists "events: admin update" on events;
+create policy "events: admin update"
+  on events for update
+  to authenticated
+  using ( public.is_shinedo_admin() )
+  with check ( public.is_shinedo_admin() );
+
+drop policy if exists "events: admin delete" on events;
+create policy "events: admin delete"
+  on events for delete
+  to authenticated
+  using ( public.is_shinedo_admin() );
+
+create or replace function public.list_admins()
+returns table (user_id uuid, email text)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+  select a.user_id, u.email::text
+  from admins a
+  join auth.users u on u.id = a.user_id
+  order by u.email;
+end;
+$$;
+
+create or replace function public.grant_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'そのメールアドレスのユーザーが見つかりません（先にSupabase AuthでUserを作成してください）';
+  end if;
+
+  insert into admins (user_id) values (target_id) on conflict do nothing;
+end;
+$$;
+
+create or replace function public.revoke_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'ユーザーが見つかりません';
+  end if;
+
+  delete from admins where user_id = target_id;
+end;
+$$;
+
+grant execute on function public.is_shinedo_admin() to authenticated;
