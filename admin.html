@@ -471,7 +471,8 @@ function renderMembersTable(data){
         await supabaseClient.from(table).update({ status: 'pending' }).eq('id', id);
       } else if (action === 'delete'){
         if (!confirm('このデータを削除します。よろしいですか？')) { btn.disabled = false; return; }
-        await supabaseClient.from(table).delete().eq('id', id);
+        const { error: deleteError } = await supabaseClient.from(table).delete().eq('id', id);
+        if (deleteError){ alert('削除に失敗しました: ' + deleteError.message); btn.disabled = false; return; }
       } else if (action === 'save-details'){
         const update = {};
         tr.querySelectorAll('[data-field]').forEach(el => {
