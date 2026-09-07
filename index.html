@@ -915,7 +915,7 @@ async function loadMembers(){
 
   if (error){
     countEl.innerHTML = '—<span class="unit">読み込みエラー</span>';
-    mapEl.innerHTML = '<p class="state-msg" style="padding:1.5rem;">地図を読み込めませんでした。</p>';
+    mapEl.innerHTML = `<p class="state-msg" style="padding:1.5rem;">地図を読み込めませんでした。<br>${escapeHtml(error.message)}</p>`;
     return;
   }
 
