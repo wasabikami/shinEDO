@@ -489,3 +489,110 @@ end;
 $$;
 
 grant execute on function public.is_shinedo_admin() to authenticated;
+
+-- ------------------------------------------------------------
+-- members/adminsテーブルを完全に廃止する（最終段階）。
+-- 新規登録は既にprofilesへ直接作られるようになっており、membersは
+-- 未統合の古い応募データを一時的に保持するだけの台帳、adminsは
+-- profiles.is_adminへ移行済みの管理者フラグの旧置き場でしかない。
+-- 両テーブルをまだ参照している関数を先に置き換えてから、最後にDROPする。
+-- ------------------------------------------------------------
+
+-- 念のため、adminsテーブルにしか記録されていない管理者をprofiles.is_adminへ最終コピー
+update profiles set is_admin = true
+where id in (select user_id from admins) and coalesce(is_admin, false) = false;
+
+create or replace function public.is_shinedo_admin()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select is_admin from profiles where id = auth.uid()), false);
+$$;
+
+create or replace function public.claim_member()
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_row profiles;
+begin
+  select * into v_row from profiles where id = auth.uid() and status is not null;
+  if not found then
+    return null;
+  end if;
+  return to_jsonb(v_row);
+end;
+$$;
+
+create or replace function public.admin_list_members()
+returns setof profiles
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+    select * from profiles
+    where status is not null
+    order by (status = 'pending') desc, created_at desc;
+end;
+$$;
+
+create or replace function public.list_admins()
+returns table (user_id uuid, email text)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+  select p.id, u.email::text
+  from profiles p
+  join auth.users u on u.id = p.id
+  where p.is_admin;
+end;
+$$;
+
+create or replace function public.grant_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'そのメールアドレスのユーザーが見つかりません（先にSupabase AuthでUserを作成してください）';
+  end if;
+
+  update profiles set is_admin = true where id = target_id;
+  if not found then
+    raise exception 'そのユーザーはまだprofilesに登録されていません（一度mypage.htmlでログインしてもらってください）';
+  end if;
+end;
+$$;
+
+create or replace function public.revoke_admin(target_email text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  target_id uuid;
+begin
+  if not public.is_shinedo_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  select id into target_id from auth.users where email = target_email;
+  if target_id is null then
+    raise exception 'ユーザーが見つかりません';
+  end if;
+
+  update profiles set is_admin = false where id = target_id;
+end;
+$$;
+
+drop table if exists members cascade;
+drop table if exists admins cascade;
