@@ -929,6 +929,18 @@ async function loadMembers(){
     return;
   }
 
+  const { data: myProfile } = await supabaseClient
+    .from('profiles')
+    .select('status')
+    .eq('id', session.user.id)
+    .maybeSingle();
+  if (myProfile?.status !== 'approved'){
+    countEl.innerHTML = '—<span class="unit">承認されると見られます</span>';
+    tilesEl.innerHTML = '';
+    mapEl.innerHTML = '<p class="state-msg" style="padding:1.5rem;">仲間の一覧・地図は、会員として承認されると見られます。<br><a href="mypage.html">マイページへ</a></p>';
+    return;
+  }
+
   const { data, count, error } = await supabaseClient
     .from('profiles')
     .select('name, area, lat, lng, url, member_type', { count: 'exact' })
