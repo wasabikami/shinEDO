@@ -908,7 +908,7 @@ async function loadMembers(){
 
   const { data, count, error } = await supabaseClient
     .from('profiles')
-    .select('name, category, area, lat, lng, url, member_type', { count: 'exact' })
+    .select('name, area, lat, lng, url, member_type', { count: 'exact' })
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(24);
