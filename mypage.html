@@ -61,6 +61,7 @@
     font-family:var(--font-label); font-size:.9rem; letter-spacing:.05em;
     background:var(--ai); color:var(--kinari); border:none;
     padding:.75em 1.4em; border-radius:2px; cursor:pointer;
+    white-space:nowrap;
   }
   .btn:hover{ background:var(--ai-deep); }
   .btn.ghost{ background:transparent; color:var(--ai); border:1px solid rgba(31,58,95,.3); }
@@ -73,9 +74,16 @@
     cursor:pointer; font-size:.85rem; padding:0;
   }
 
-  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:.8em; }
   #editView{ display:none; }
   .state-msg{ font-size:.9rem; color:#5a5347; padding:1rem 0; }
+
+  @media (max-width:480px){
+    .topbar{ flex-direction:column; align-items:stretch; }
+    .topbar #whoami{ overflow-wrap:anywhere; }
+    .topbar > div{ display:flex; gap:.6em; width:100%; }
+    .topbar .btn{ flex:1; text-align:center; padding:.7em .4em; font-size:.82rem; }
+  }
 </style>
 </head>
 <body>
