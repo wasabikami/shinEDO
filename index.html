@@ -305,8 +305,14 @@
   }
   .event-row > div{ min-width:0; }
   @media (max-width:560px){
-    .event-row{ grid-template-columns:1fr; gap:.2rem; }
-    .event-row .tag{ justify-self:start; margin-top:.4em; }
+    .event-row{
+      grid-template-columns:1fr auto;
+      grid-template-areas:"date tag" "body body";
+      gap:.2rem .6rem;
+    }
+    .event-row .date{ grid-area:date; }
+    .event-row .event-body{ grid-area:body; }
+    .event-row .tag{ grid-area:tag; justify-self:end; align-self:start; margin-top:0; }
     .question-field .q{ padding:1.1rem 1rem 1rem; font-size:1.05rem; }
     .rules .rule{ padding:1.2rem 1.3rem; }
   }
@@ -1012,7 +1018,7 @@ async function loadEvents(){
     return groupMark + `
     <div class="event-row ${ev.isDone ? 'is-done' : ''}">
       <div class="date">${ev.event_date ? formatDate(ev.event_date) : ''}</div>
-      <div>
+      <div class="event-body">
         <div class="guest">${escapeHtml(ev.guest_name || '')}</div>
         ${ev.theme ? `<div class="theme">${escapeHtml(ev.theme)}</div>` : ''}
         ${detailHtml}
