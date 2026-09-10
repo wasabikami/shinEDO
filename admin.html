@@ -131,6 +131,19 @@
   .members-table th:nth-child(3), .members-table td:nth-child(3){ width:5rem; }
   .members-table th:nth-child(4), .members-table td:nth-child(4){ width:22rem; }
   .members-table th:nth-child(5), .members-table td:nth-child(5){ width:9rem; }
+
+  .members-table select[data-action="type"]{
+    width:100%; max-width:4.6rem;
+    padding:.35em .3em; font-size:.82rem;
+    border:1px solid rgba(31,58,95,.25); border-radius:2px;
+    background:#fff; font-family:var(--font-label);
+  }
+
+  @media (max-width:640px){
+    .members-table th:nth-child(1), .members-table td:nth-child(1){ width:4.2rem; }
+    .members-table th:nth-child(3), .members-table td:nth-child(3){ width:3.6rem; }
+    .members-table select[data-action="type"]{ max-width:3.4rem; font-size:.75rem; padding:.3em .2em; }
+  }
 </style>
 </head>
 <body>
