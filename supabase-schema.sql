@@ -596,3 +596,41 @@ $$;
 
 drop table if exists members cascade;
 drop table if exists admins cascade;
+
+-- ------------------------------------------------------------
+-- ニュース機能：admin.htmlで投稿し、HPトップに表示する
+-- ------------------------------------------------------------
+create table if not exists news (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  category text,
+  content text,
+  news_date date,
+  created_at timestamptz not null default now()
+);
+alter table news enable row level security;
+
+create policy "news: public read"
+  on news for select
+  to public
+  using ( true );
+
+create policy "news: admin insert"
+  on news for insert
+  to authenticated
+  with check ( public.is_shinedo_admin() );
+
+create policy "news: admin update"
+  on news for update
+  to authenticated
+  using ( public.is_shinedo_admin() )
+  with check ( public.is_shinedo_admin() );
+
+create policy "news: admin delete"
+  on news for delete
+  to authenticated
+  using ( public.is_shinedo_admin() );
+
+-- 動作確認用ダミーデータ（確認できたら管理画面から削除してOK）
+insert into news (title, category, content, news_date) values
+  ('shinEDO projectのウェブサイトを公開しました', 'お知らせ', 'これはダミーのニュースです。管理ページの「ニュース」タブから編集・削除できます。', current_date);
