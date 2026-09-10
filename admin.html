@@ -118,6 +118,12 @@
   }
   .event-row-edit textarea{ min-height:3rem; resize:vertical; }
 
+  .news-table{ table-layout:fixed; }
+  .news-table th:nth-child(1), .news-table td:nth-child(1){ width:8.5rem; }
+  .news-table th:nth-child(2), .news-table td:nth-child(2){ width:8rem; }
+  .news-table th:nth-child(3), .news-table td:nth-child(3){ width:28rem; }
+  .news-table th:nth-child(4), .news-table td:nth-child(4){ width:6rem; }
+
   .events-table{ table-layout:fixed; }
   .events-table th:nth-child(1), .events-table td:nth-child(1){ width:8.5rem; }
   .events-table th:nth-child(2), .events-table td:nth-child(2){ width:5rem; }
@@ -185,6 +191,7 @@
 
     <div class="tabs">
       <button type="button" id="tabMembers" class="active">会員</button>
+      <button type="button" id="tabNews">ニュース</button>
       <button type="button" id="tabEvents">お話会</button>
       <button type="button" id="tabAdmins">管理者</button>
     </div>
@@ -194,6 +201,35 @@
         <input id="memberSearch" type="text" placeholder="名前・住所・連絡先などで検索">
       </div>
       <div id="memberTableWrap">
+        <p class="state-msg">読み込み中…</p>
+      </div>
+    </div>
+
+    <div id="newsPanel" style="display:none;">
+      <form id="newsForm" class="event-form">
+        <div>
+          <label for="news-date">日付</label>
+          <input id="news-date" type="date" required>
+        </div>
+        <div>
+          <label for="news-category">カテゴリ</label>
+          <input id="news-category" type="text" placeholder="例：お知らせ、メディア掲載">
+        </div>
+        <div class="full">
+          <label for="news-title">タイトル</label>
+          <input id="news-title" type="text" required>
+        </div>
+        <div class="full">
+          <label for="news-content">内容</label>
+          <textarea id="news-content"></textarea>
+        </div>
+        <div class="full">
+          <button type="submit" class="btn">ニュースを追加</button>
+          <p id="newsFormMsg" class="msg" role="status"></p>
+        </div>
+      </form>
+
+      <div id="newsTableWrap" style="overflow-x:auto;">
         <p class="state-msg">読み込み中…</p>
       </div>
     </div>
@@ -322,24 +358,33 @@ async function showAdmin(session){
 }
 
 const tabMembers = document.getElementById('tabMembers');
+const tabNews = document.getElementById('tabNews');
 const tabEvents = document.getElementById('tabEvents');
 const tabAdmins = document.getElementById('tabAdmins');
 const membersPanel = document.getElementById('membersPanel');
+const newsPanel = document.getElementById('newsPanel');
 const eventsPanel = document.getElementById('eventsPanel');
 const adminsPanel = document.getElementById('adminsPanel');
+let newsLoaded = false;
 let eventsLoaded = false;
 let adminsLoaded = false;
 
 function showTab(tab){
   tabMembers.classList.toggle('active', tab === 'members');
+  tabNews.classList.toggle('active', tab === 'news');
   tabEvents.classList.toggle('active', tab === 'events');
   tabAdmins.classList.toggle('active', tab === 'admins');
   membersPanel.style.display = tab === 'members' ? 'block' : 'none';
+  newsPanel.style.display = tab === 'news' ? 'block' : 'none';
   eventsPanel.style.display = tab === 'events' ? 'block' : 'none';
   adminsPanel.style.display = tab === 'admins' ? 'block' : 'none';
 }
 
 tabMembers.addEventListener('click', () => showTab('members'));
+tabNews.addEventListener('click', () => {
+  showTab('news');
+  if (!newsLoaded){ newsLoaded = true; loadNews(); }
+});
 tabEvents.addEventListener('click', () => {
   showTab('events');
   if (!eventsLoaded){ eventsLoaded = true; loadEvents(); }
@@ -519,6 +564,99 @@ function renderMembersTable(data){
     });
   });
 }
+
+/* ---------- news ---------- */
+const newsTableWrap = document.getElementById('newsTableWrap');
+const newsForm = document.getElementById('newsForm');
+const newsFormMsg = document.getElementById('newsFormMsg');
+
+async function loadNews(){
+  newsTableWrap.innerHTML = '<p class="state-msg">読み込み中…</p>';
+  const { data, error } = await supabaseClient
+    .from('news')
+    .select('*')
+    .order('news_date', { ascending: false });
+
+  if (error){
+    newsTableWrap.innerHTML = `<p class="state-msg">読み込めませんでした。<br>${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || data.length === 0){
+    newsTableWrap.innerHTML = '<p class="state-msg">ニュースデータがありません。</p>';
+    return;
+  }
+
+  const rows = data.map(n => `
+    <tr class="event-row-edit" data-id="${n.id}">
+      <td><input type="date" data-field="news_date" value="${n.news_date ?? ''}"></td>
+      <td><input type="text" data-field="category" value="${escapeHtml(n.category ?? '')}"></td>
+      <td>
+        <input type="text" data-field="title" value="${escapeHtml(n.title ?? '')}" style="margin-bottom:.4em;">
+        <textarea data-field="content" placeholder="内容">${escapeHtml(n.content ?? '')}</textarea>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button data-action="save">保存</button>
+          <button class="reject" data-action="delete">削除</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  newsTableWrap.innerHTML = `
+    <table class="news-table">
+      <thead>
+        <tr><th>日付</th><th>カテゴリ</th><th>タイトル・内容</th><th>操作</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  newsTableWrap.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      if (action === 'save'){
+        const update = {};
+        tr.querySelectorAll('[data-field]').forEach(el => {
+          update[el.dataset.field] = el.value.trim() || null;
+        });
+        const { error: saveError } = await supabaseClient.from('news').update(update).eq('id', id);
+        if (saveError){ alert('保存に失敗しました: ' + saveError.message); btn.disabled = false; return; }
+      } else if (action === 'delete'){
+        if (!confirm('このニュースを削除します。よろしいですか？')) { btn.disabled = false; return; }
+        await supabaseClient.from('news').delete().eq('id', id);
+      }
+      await loadNews();
+    });
+  });
+}
+
+newsForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  newsFormMsg.textContent = '追加しています…';
+  newsFormMsg.className = 'msg';
+
+  const payload = {
+    news_date: document.getElementById('news-date').value || null,
+    category: document.getElementById('news-category').value.trim() || null,
+    title: document.getElementById('news-title').value.trim(),
+    content: document.getElementById('news-content').value.trim() || null
+  };
+
+  const { error } = await supabaseClient.from('news').insert(payload);
+  if (error){
+    newsFormMsg.textContent = '追加に失敗しました: ' + error.message;
+    newsFormMsg.className = 'msg err';
+    return;
+  }
+  newsFormMsg.textContent = '追加しました。';
+  newsFormMsg.className = 'msg ok';
+  newsForm.reset();
+  await loadNews();
+});
 
 /* ---------- events ---------- */
 const eventTableWrap = document.getElementById('eventTableWrap');

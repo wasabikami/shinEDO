@@ -359,6 +359,22 @@
 
   .state-msg{ font-family:var(--font-label); font-size:.85rem; color:#8a8270; padding:1rem 0; }
 
+  /* ============ Dynamic: news ============ */
+  .news-list{ display:grid; gap:0; margin-top:1.6rem; border-top:1px solid rgba(31,58,95,.16); }
+  .news-row{ padding:1.1rem 0; border-bottom:1px solid rgba(31,58,95,.16); }
+  .news-row .news-top{ display:flex; align-items:baseline; gap:.9em; flex-wrap:wrap; margin-bottom:.4em; }
+  .news-row .news-date{ font-family:var(--font-label); font-size:.82rem; color:var(--shu); }
+  .news-row .news-category{
+    font-family:var(--font-label); font-size:.68rem; letter-spacing:.04em;
+    padding:.3em .8em; border-radius:999px;
+    background:rgba(31,58,95,.06); border:1px solid rgba(31,58,95,.18); color:var(--ai);
+  }
+  .news-row .news-title{ font-family:var(--font-display); font-size:1.1rem; color:var(--ai); margin-bottom:.3em; }
+  .news-row .news-content{
+    font-size:.9rem; color:var(--sumi); margin:0;
+    max-width:38em; white-space:pre-wrap; overflow-wrap:anywhere;
+  }
+
   /* ============ Dynamic: members ============ */
   .member-count{
     font-family:var(--font-display);
@@ -700,6 +716,7 @@ footer{padding-top:5rem;}
 <header class="site-header">
   <nav class="site-nav wrap">
     <a class="brand" href="#top">shinEDO PJ</a>
+    <a href="#news">ニュース</a>
     <a href="#events">お話会</a>
     <a href="#members">仲間</a>
     <a href="#ouen-app">OUEN-APP</a>
@@ -718,6 +735,19 @@ footer{padding-top:5rem;}
     <div class="scroll-hint"><span class="line"></span>SCROLL</div>
   </div>
 </section>
+
+<!-- ============ ニュース（動的） ============ -->
+<section id="news">
+  <div class="wrap reveal">
+    <p class="eyebrow">ニュース</p>
+    <h2>お知らせ</h2>
+    <div id="news-list" class="news-list">
+      <p class="state-msg">読み込み中…</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="divider"></div></div>
 
 <!-- ============ 問題提起 ============ -->
 <section>
@@ -1029,6 +1059,33 @@ async function loadEvents(){
   }).join('');
 }
 
+/* ---------- news ---------- */
+async function loadNews(){
+  const el = document.getElementById('news-list');
+  if (!supabaseClient){
+    el.innerHTML = '<p class="state-msg">Supabaseが未接続です。</p>';
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from('news')
+    .select('*')
+    .order('news_date', { ascending: false });
+
+  if (error){ el.innerHTML = '<p class="state-msg">ニュースを読み込めませんでした。</p>'; return; }
+  if (!data || data.length === 0){ el.innerHTML = '<p class="state-msg">まだニュースはありません。</p>'; return; }
+
+  el.innerHTML = data.map(n => `
+    <div class="news-row">
+      <div class="news-top">
+        ${n.news_date ? `<span class="news-date">${formatDate(n.news_date)}</span>` : ''}
+        ${n.category ? `<span class="news-category">${escapeHtml(n.category)}</span>` : ''}
+      </div>
+      <div class="news-title">${escapeHtml(n.title || '')}</div>
+      ${n.content ? `<p class="news-content">${escapeHtml(n.content)}</p>` : ''}
+    </div>
+  `).join('');
+}
+
 /* ---------- members ---------- */
 async function loadMembers(){
   const countEl = document.getElementById('member-count');
@@ -1224,6 +1281,7 @@ function formatDate(d){
 
 loadEvents();
 loadMembers();
+loadNews();
 </script>
 </body>
 </html>
