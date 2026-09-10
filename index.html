@@ -17,13 +17,13 @@
 <style>
   /* ============ Design tokens ============ */
   :root{
-    --ai:        #1F3A5F;   /* 藍色 — indigo, primary */
-    --ai-deep:   #12253C;   /* 濃藍 — deep indigo, dark sections */
-    --kinari:    #F2ECD9;   /* 生成り — washi cream, background */
-    --kinari-dim:#E9E1C7;   /* washi shadow tone */
-    --sumi:      #211D18;   /* 墨 — ink black, text */
-    --shu:       #BB4430;   /* 朱 — vermilion, hanko stamp accent */
-    --kincha:    #A9812D;   /* 金茶 — muted gold, hairlines/dividers */
+    --ai:        #183B56;   /* 藍色 — indigo, primary */
+    --ai-deep:   #0B2233;   /* 濃藍 — deep indigo, dark sections */
+    --kinari:    #F7F4ED;   /* 生成り — washi cream, background */
+    --kinari-dim:#E9E5DB;   /* washi shadow tone */
+    --sumi:      #17212B;   /* 墨 — ink black, text */
+    --shu:       #C56B4B;   /* 朱 — vermilion, hanko stamp accent */
+    --kincha:    #B99A63;   /* 金茶 — muted gold, hairlines/dividers */
 
     --font-display: 'Shippori Mincho', 'Noto Serif JP', serif;
     --font-body: 'Noto Serif JP', serif;
@@ -576,6 +576,117 @@
     margin:0 0 .35em;
     line-height:1.15;
   }
+
+/* ============ Modern visual refinement ============ */
+body{
+  background:
+    radial-gradient(circle at 8% 10%, rgba(197,107,75,.07), transparent 28rem),
+    radial-gradient(circle at 92% 32%, rgba(24,59,86,.08), transparent 30rem),
+    var(--kinari);
+}
+body::before{opacity:.22;}
+.site-header{
+  backdrop-filter:blur(16px);
+  background:rgba(11,34,51,.92);
+  box-shadow:0 8px 30px rgba(11,34,51,.12);
+}
+.site-nav{max-width:72rem;}
+.site-nav a{transition:all .25s ease;}
+.site-nav a.brand{
+  margin-right:auto;
+  font-size:1rem;
+  letter-spacing:.04em;
+}
+.hero{
+  min-height:92vh;
+  background:
+    linear-gradient(115deg, rgba(11,34,51,.98) 0%, rgba(24,59,86,.92) 52%, rgba(24,59,86,.68) 100%),
+    radial-gradient(circle at 85% 20%, rgba(185,154,99,.22), transparent 28rem);
+}
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:12% 7% auto auto;
+  width:min(42vw,520px);
+  aspect-ratio:1;
+  border:1px solid rgba(247,244,237,.18);
+  border-radius:50%;
+  box-shadow:0 0 0 42px rgba(247,244,237,.035),0 0 0 84px rgba(247,244,237,.025);
+}
+.hero::after{right:-8%;opacity:.7;}
+.hero .wrap{max-width:72rem;}
+.hero-brand{
+  font-size:clamp(2.5rem,7vw,5.8rem);
+  letter-spacing:-.035em;
+  text-shadow:0 8px 30px rgba(0,0,0,.16);
+}
+.hero h1{
+  font-size:clamp(2rem,4vw,3.2rem);
+  letter-spacing:.08em;
+}
+.hero .lead{max-width:38em;color:#E8E4D9;}
+section{padding:7rem 0;}
+.wrap{max-width:54rem;}
+.wrap--wide{max-width:72rem;}
+.eyebrow{letter-spacing:.34em;font-size:.68rem;}
+h2{font-size:clamp(1.7rem,3.5vw,2.5rem);line-height:1.55;}
+.lead{line-height:2.05;}
+.divider{opacity:.35;}
+.question-field{gap:1rem;}
+.question-field .q{
+  min-height:9rem;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  border:1px solid rgba(24,59,86,.10);
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(23,33,43,.045);
+  transition:transform .3s ease, box-shadow .3s ease;
+}
+.question-field .q:hover{
+  transform:translateY(-6px);
+  box-shadow:0 18px 40px rgba(23,33,43,.10);
+}
+.callout{
+  border-left:2px solid var(--shu);
+  background:rgba(255,255,255,.38);
+  padding:1.1rem 1.4rem;
+  border-radius:0 12px 12px 0;
+}
+.section--dark{
+  background:
+    radial-gradient(circle at 90% 10%, rgba(185,154,99,.14), transparent 25rem),
+    linear-gradient(135deg,#0B2233,#183B56);
+}
+.target-grid span{
+  background:rgba(247,244,237,.05);
+  border-color:rgba(247,244,237,.25);
+  transition:background .25s ease,transform .25s ease;
+}
+.target-grid span:hover{background:rgba(247,244,237,.12);transform:translateY(-2px);}
+.rule{
+  border:1px solid rgba(24,59,86,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.52);
+  box-shadow:0 8px 24px rgba(23,33,43,.035);
+}
+.event-list{border-top:1px solid rgba(24,59,86,.12);}
+.event-row{padding:1.4rem .8rem;border-bottom:1px solid rgba(24,59,86,.10);}
+.event-row:hover{background:rgba(255,255,255,.42);}
+#member-map{border-radius:16px;overflow:hidden;box-shadow:0 12px 35px rgba(23,33,43,.08);}
+.hanko-btn{filter:drop-shadow(0 8px 18px rgba(197,107,75,.16));}
+.cta-btn,.submit-btn{border-radius:999px;}
+.cta-btn{padding:.9em 1.8em;}
+.submit-btn:hover{transform:translateY(-2px);}
+footer{padding-top:5rem;}
+@media (max-width:640px){
+  .site-nav{gap:1.1rem;padding:.75rem 0;}
+  .site-nav a{font-size:.72rem;}
+  .hero{min-height:86vh;}
+  .hero-brand{font-size:2.55rem;}
+  section{padding:4.8rem 0;}
+  .question-field .q{min-height:7.5rem;}
+}
 </style>
 </head>
 <body>
