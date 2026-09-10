@@ -529,7 +529,7 @@ function renderMembersTable(data){
       } else if (action === 'save-details'){
         const update = {};
         tr.querySelectorAll('[data-field]').forEach(el => {
-          update[el.dataset.field] = el.value.trim() || null;
+          update[el.dataset.field] = el.value.trim();
         });
         update.name = update.name || (data.find(m => m.id === id) || {}).name;
 
